@@ -95,6 +95,7 @@ function render(d,self){
       ${cell('数据源',d.src)}
     </div>
     ${badges?`<div class="tags">${badges}</div>`:''}
+    ${(d.isp||'').includes('广电')?`<div style="padding:10px 18px 14px;font-size:12.5px;line-height:1.7;color:rgba(231,199,106,.85);border-top:1px dashed rgba(231,199,106,.25);">⚠️ 广电卡定位仅供参考，IP 库普遍只登记到运营商总部</div>`:''}
   </div>`;
 }
 function loading(){out.innerHTML='<div class="spin"></div>'}
