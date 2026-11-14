@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>欢乐工具站 · tl.efcc.cc</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314213D'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23D9A521'%3E%F0%9F%9B%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>欢乐工具站 · tv.efcc.cc</title>
 <style>
   :root{
     --deep:#14213D; --deep2:#1B2A4A; --deep3:#2A4370;
@@ -60,7 +59,6 @@
   .tool .t-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .icon-box{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--deep),var(--deep3));box-shadow:0 6px 16px rgba(20,33,61,.28);}
   .icon-box svg{width:26px;height:26px;}
-  .icon-box .ico{font-size:26px;line-height:1;}
   .tag{font-size:12px;padding:4px 12px;border-radius:999px;letter-spacing:1px;white-space:nowrap;}
   .tag.on{color:#2E7D4F;background:#E9F5EE;border:1px solid #BFE3CC;}
   .tag.build{color:#9A6B00;background:#FBF3DD;border:1px solid #EAD198;}
@@ -80,8 +78,9 @@
   /* ═══ 页脚 ═══ */
   footer{background:var(--deep);color:#8E99AF;}
   .foot-in{max-width:1060px;margin:0 auto;padding:34px 20px 30px;text-align:center;}
-  .admin-link{font-size:12px;color:#8A93A6;text-decoration:none;border-bottom:1px dashed rgba(138,147,166,.4);opacity:.75;}
-  .admin-link:hover{color:var(--goldL);opacity:1;}
+  .universe{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+  .universe a{font-size:13.5px;color:#C7CEDC;border:1px solid rgba(199,206,220,.22);padding:7px 16px;border-radius:999px;transition:.2s;}
+  .universe a:hover{color:var(--goldXL);border-color:rgba(217,165,33,.5);}
   .foot-note{font-size:12.5px;line-height:2;letter-spacing:.5px;}
   .foot-note b{color:#D5DCEA;}
 
@@ -104,16 +103,12 @@
     <a class="brand" href="/">
       <span class="lamp"></span>
       <b>欢乐工具站</b>
-      <span>tl.efcc.cc</span>
+      <span>tv.efcc.cc</span>
     </a>
     <div class="nav-links">
-      <!--NAV:START-->
-          <a href="https://hlchina.cn" target="_blank" rel="noopener">欢乐视频</a>
-          <a href="https://efcc.cc" target="_blank" rel="noopener">欢乐影视</a>
-          <a href="https://bbs.efcc.cc" target="_blank" rel="noopener">欢乐论坛</a>
-          <a href="https://so.efcc.cc" target="_blank" rel="noopener">欢乐搜索</a>
-          <a href="https://tl.efcc.cc/about" target="_blank" rel="noopener">关于本站</a>
-          <!--NAV:END-->
+      <!--NAV:START--><a href="https://efcc.cc" target="_blank">欢乐影视</a>
+      <a href="https://efcc.cc/live/" target="_blank">欢乐直播</a>
+      <a href="https://afcc.cc" target="_blank">欢乐搜索</a><!--NAV:END-->
     </div>
   </div>
 </nav>
@@ -122,7 +117,7 @@
   <div class="hero-in">
     <div class="kicker rise">HAPPY TOOLS STATION</div>
     <h1 class="rise d1">欢乐工具站</h1>
-    <p class="sub rise d2">一个域名，直达所有自建工具<br><b>页面住在 GitHub</b> · 由 tl.efcc.cc 高速转发</p>
+    <p class="sub rise d2">一个域名，直达所有自建工具<br><b>页面住在 GitHub</b> · 由 tv.efcc.cc 高速转发</p>
     <div class="feats rise d3">
       <span class="feat"><i></i>零服务器</span>
       <span class="feat"><i></i>零月租</span>
@@ -139,53 +134,63 @@
   </div>
   <div class="grid">
 
-    <a class="tool" href="/soft/platform/index.html" target="_blank" rel="noopener">
+    <a class="tool" href="/tool/admin.html">
       <div class="t-top">
-        <div class="icon-box"><span class="ico">🧱</span></div>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E8BC4F" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="5" rx="1.5"/>
+            <rect x="3" y="14" width="18" height="5" rx="1.5"/>
+            <circle cx="7" cy="6.5" r=".8" fill="#E8BC4F" stroke="none"/>
+            <circle cx="7" cy="16.5" r=".8" fill="#E8BC4F" stroke="none"/>
+          </svg>
+        </div>
+        <span class="tag on">已上线</span>
+      </div>
+      <h3>欢乐 GitHub 管理平台</h3>
+      <p>在线管理 GitHub 仓库：文件增删改、内容编辑、上传下载，走 tv.efcc.cc 高速通道，是手机电脑都能用的仓库驾驶舱。</p>
+      <span class="go">打开平台 <em>→</em></span>
+    </a>
+
+    <a class="tool" href="/soft/sports/index.html">
+      <div class="t-top">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E8BC4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8l8-4 8 4-8 4-8-4z"/>
+            <path d="M4 8v8l8 4 8-4V8"/>
+            <path d="M12 12v8"/>
+          </svg>
+        </div>
         <span class="tag build">建设中</span>
       </div>
       <h3>程序制作平台</h3>
-      <p>造程序的车间：先造积木，再用积木搭程序。这里看积木箱、生产线和每一件作品——车间与作品分开门。</p>
+      <p>先造积木，再用积木搭程序。第一个作品：学校运动会成绩管理系统——报名、计分、汇总全自动，目标 2027 年春季运动会实战。</p>
       <span class="go">进入工地 <em>→</em></span>
     </a>
 
-    <a class="tool" href="https://gh.efcc.cc/" target="_blank" rel="noopener">
+    <!--SHELF:CARDS-->
+    <div class="tool ghost">
       <div class="t-top">
-        <div class="icon-box"><span class="ico">⚡</span></div>
-        <span class="tag on">已上线</span>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </div>
       </div>
-      <h3>欢乐 GitHub 高速平台</h3>
-      <p>GitHub 国内打开慢？这里秒开：输个 用户名/仓库 免登录浏览任何公开仓库；贴上自己的令牌，就能在线管理自己的文件。</p>
-      <span class="go">立即体验 <em>→</em></span>
-    </a>
-
-    <a class="tool" href="/share" target="_blank" rel="noopener">
-      <div class="t-top">
-        <div class="icon-box"><span class="ico">📁</span></div>
-        <span class="tag on">已上线</span>
-      </div>
-      <h3>文件共享站</h3>
-      <p>人人可上传：输入码取文件，删除码看完即毁——发给学生家长、同事、朋友，点开即取。</p>
-      <span class="go">立即使用 <em>→</em></span>
-    </a>
-
-    <a class="tool" href="/soft/sports/index.html" target="_blank" rel="noopener"><!-- v4.18b：作品卡一律新窗口（防呆：即使配置漏了 external 也强制） -->
-      <div class="t-top">
-        <div class="icon-box"><span class="ico">🏃</span></div>
-        <span class="tag build">建设中</span>
-      </div>
-      <h3>运动会管理系统</h3>
-      <p>程序制作平台的第一件作品：报名、计分、汇总全自动——目标 2027 年春季运动会实战。当前开放模块：M1 基础配置。</p>
-      <span class="go">进入程序 <em>→</em></span>
-    </a>
-    <!--货架区：程序制作平台发布的作品自动出现在这里（v4.18）-->
+      <h3>虚位以待</h3>
+      <p>下一个工具想好了就挂门牌：学生奖励加分制、班级各项积分、题库考试、工程账目……本站就是欢乐宇宙的调度台。</p>
+    </div>
 
   </div>
 </main>
 
 <footer>
   <div class="foot-in">
-    <p class="foot-note"><b>欢乐工具站</b> · 欢乐宇宙的调度台<br><a href="/tool/admin.html" class="admin-link" style="margin:0 6px" target="_blank" rel="noopener">我的github</a> · <a href="/apps/station-admin/index.html" class="admin-link" style="margin:0 6px" target="_blank" rel="noopener">后台登录</a><br>页面托管于 GitHub · Cloudflare 全球加速 · 零服务器零月租</p>
+    <div class="universe">
+      <a href="https://efcc.cc" target="_blank">欢乐影视</a>
+      <a href="https://efcc.cc/live/" target="_blank">欢乐直播 201</a>
+      <a href="https://afcc.cc" target="_blank">欢乐搜索</a>
+    </div>
+    <p class="foot-note"><b>欢乐工具站</b> · 欢乐宇宙的调度台<br>页面托管于 GitHub · Cloudflare 全球加速 · 零服务器零月租</p>
   </div>
 </footer>
 
