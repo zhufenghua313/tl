@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IP 归属地查询 · 欢乐工具站</title>
+<style>
+:root{--bg:#0e1726;--card:#16233b;--line:rgba(232,188,79,.18);--gold:#E8BC4F;--ink:#eef2f8;--sub:#9fb0c9;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 50% -10%,#1b2a45 0%,var(--bg) 60%);min-height:100vh;color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 20px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#E8BC4F,#d99e2b);display:flex;align-items:center;justify-content:center;font-size:18px}
+.domain{color:var(--gold);font-size:13px;letter-spacing:.5px}
+.hero{text-align:center;padding:18px 0 26px}
+.hero h1{font-size:26px;letter-spacing:1px}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
+.search{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
+.search input{flex:1;background:#0b1422;border:1px solid #2a3c5e;border-radius:10px;color:var(--ink);padding:13px 14px;font-size:15px;outline:none}
+.search input:focus{border-color:var(--gold)}
+.search button{background:linear-gradient(135deg,#E8BC4F,#d99e2b);border:none;border-radius:10px;color:#20283a;font-weight:800;font-size:15px;padding:0 26px;cursor:pointer}
+.search button:active{transform:scale(.97)}
+.quick{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.quick button{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:7px 14px;font-size:12.5px;cursor:pointer}
+.quick button:hover{color:var(--gold);border-color:var(--gold)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-top:20px;overflow:hidden}
+.card .head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card .head .ip{font-size:18px;font-weight:700;letter-spacing:.5px}
+.badge{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.05)}
+.cell{background:var(--card);padding:13px 18px}
+.cell.full{grid-column:1/-1}
+.cell .k{font-size:11.5px;color:var(--sub);margin-bottom:5px}
+.cell .v{font-size:14.5px;font-weight:600;word-break:break-all}
+.tags{display:flex;gap:8px;padding:12px 18px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06)}
+.tag{font-size:11px;padding:4px 11px;border-radius:999px}
+.tag.yes{background:rgba(232,120,80,.15);color:#ff9d76;border:1px solid rgba(232,120,80,.3)}
+.tag.no{background:rgba(90,200,140,.12);color:#7fd6a4;border:1px solid rgba(90,200,140,.25)}
+.msg{padding:22px;text-align:center;color:var(--sub);font-size:14px;line-height:1.8}
+.spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;margin:30px auto;animation:r 1s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+footer{text-align:center;color:var(--sub);font-size:12px;padding:26px 0 0}
+footer a{color:var(--gold);text-decoration:none}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.search button{padding:12px 18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="logo">🧰</div><div>欢乐工具站</div></div>
+    <div class="domain">tl.efcc.cc</div>
+  </header>
+  <div class="hero">
+    <h1>IP <em>归属地</em>查询</h1>
+    <p>支持 IPv4 / IPv6 / 域名 · 数据源 ip-api 中文库 · 查询结果缓存 1 小时</p>
+  </div>
+  <div class="search">
+    <input id="q" placeholder="输入 IP 或域名，留空查自己" autocomplete="off" spellcheck="false">
+    <button id="go">查 询</button>
+  </div>
+  <div class="quick">
+    <button id="self">📍 查我自己</button>
+    <button data-p="8.8.8.8">8.8.8.8</button>
+    <button data-p="114.114.114.114">114</button>
+    <button data-p="www.baidu.com">baidu.com</button>
+  </div>
+  <div id="out"><div class="msg">输入 IP 或域名开始查询；页面打开时已自动为您检测本机 IP ⬆️</div></div>
+  <footer>欢乐工具站 · <a href="/">返回首页</a> · 页面住在 GitHub</footer>
+</div>
+<script>
+const q=document.getElementById('q'),go=document.getElementById('go'),out=document.getElementById('out');
+const flag=cc=>cc?String.fromCodePoint(...cc.toUpperCase().split('').map(c=>0x1F1E6+c.charCodeAt(0)-65)):'🌐';
+const cell=(k,v,full)=>`<div class="cell${full?' full':''}"><div class="k">${k}</div><div class="v">${v==null||v===''?'—':v}</div></div>`;
+function render(d,self){
+  const badges=[
+    d.mobile!=null?`<span class="tag ${d.mobile?'yes':'no'}">📱 ${d.mobile?'移动网络':'非移动'}</span>`:'',
+    d.proxy!=null?`<span class="tag ${d.proxy?'yes':'no'}">🕵️ ${d.proxy?'疑似代理':'非代理'}</span>`:'',
+    d.hosting!=null?`<span class="tag ${d.hosting?'yes':'no'}">🏢 ${d.hosting?'机房/托管':'非机房'}</span>`:''
+  ].join('');
+  out.innerHTML=`<div class="card">
+    <div class="head"><span class="ip">${flag(d.countryCode)} ${d.query||''}</span><span class="badge">${self?'本机':'查询结果'}</span></div>
+    <div class="grid">
+      ${cell('国家 / 地区',d.country+(d.countryCode?` (${d.countryCode})`:''))}
+      ${cell('省 / 州',d.regionName)}
+      ${cell('城市',d.city)}
+      ${cell('区县',d.district)}
+      ${cell('邮编',d.zip)}
+      ${cell('时区',d.timezone)}
+      ${cell('运营商 ISP',d.isp)}
+      ${cell('组织',d.org)}
+      ${cell('AS 号',d.as)}
+      ${cell('反向 DNS',d.reverse)}
+      ${cell('经纬度',d.lat!=null?`${d.lat}, ${d.lon}`:null)}
+      ${cell('数据源',d.src)}
+    </div>
+    ${badges?`<div class="tags">${badges}</div>`:''}
+  </div>`;
+}
+function loading(){out.innerHTML='<div class="spin"></div>'}
+function fail(m){out.innerHTML=`<div class="msg">⚠️ ${m}</div>`}
+async function lookup(t){
+  loading();
+  try{
+    const r=await fetch('/ip/api/geo'+(t?'?target='+encodeURIComponent(t):''));
+    const d=await r.json();
+    if(d.status&&d.status!=='success'){fail(d.message||'查询失败');return}
+    render(d,!t);
+  }catch(e){fail('网络异常，请稍后再试')}
+}
+go.onclick=()=>lookup(q.value.trim());
+q.addEventListener('keydown',e=>{if(e.key==='Enter')lookup(q.value.trim())});
+document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{
+  if(b.id==='self'){q.value='';lookup('');return}
+  q.value=b.dataset.p;lookup(b.dataset.p);
+});
+lookup(''); // 打开页面自动查自己
+</script>
+</body>
+</html>
