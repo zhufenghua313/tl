@@ -101,7 +101,7 @@ input[type=file]{display:none}
 /* ===== 模式配置（10:27 站长定序：上排 PDF 往外转，下排各家转成 PDF） ===== */
 const MODES = [
   {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
-  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
+  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（规整表七八成准，请校对）'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
   {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：印刷体约八九成准，模糊/手写会费劲；首次需下载认字模型约20MB'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
@@ -408,6 +408,91 @@ async function pdf2wordOcr(f){
   save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', 'OCR 认字完成（印刷体约八九成准，建议通读校对一遍）');
 }
 
+/* ===== 6b. 照片型 PDF → Excel（认字拼表兜底）：认字师傅带坐标认字 → 按y聚行/按x间隙切列 → 拼表；认不动指路 WPS/Excel 365 ===== */
+async function ocrExcel(f){
+  await ensureEngine(['pdfjs','worker','tess','jszip','xlsx']);
+  prog(.1, '照片型表格，改走认字拼表…');
+  const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+  const n = pdf.numPages;
+  if(n > 30) throw new Error('照片认字较慢，单次上限 30 页（当前 ' + n + ' 页），请分批转换');
+  const worker = await Tesseract.createWorker('chi_sim', 1, {
+    workerBlobURL: false,
+    workerPath: URL.createObjectURL(new Blob([await (await fetch('/apps/pdf/lib/tess/worker.min.js')).text()], {type:'text/javascript'})),
+    corePath: '/apps/pdf/lib/tess/',
+    langPath: '/apps/pdf/lib/tess/',
+    logger: m => { if(m.status === 'recognizing text') prog(.3 + .5*m.progress, '认字拼表中…'); }
+  });
+  try {
+    const aoa = [];
+    for(let i=1;i<=n;i++){
+      prog(.3 + .5*(i-1)/n, `第 ${i}/${n} 页认字…`);
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({scale: 2});
+      const cv = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      await page.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
+      /* 投影抹线：横贯40%宽/纵贯35%高的长直线判为表格线抹白（去框线干扰，AB实测表头全对） */
+      {
+        const w2 = cv.width, h2 = cv.height;
+        const id = cv.getContext('2d').getImageData(0,0,w2,h2), dd = id.data;
+        const rowC = new Int32Array(h2), colC = new Int32Array(w2);
+        for(let y=0;y<h2;y++){ const base=y*w2*4; for(let x=0;x<w2;x++){ const o=base+x*4; if(0.299*dd[o]+0.587*dd[o+1]+0.114*dd[o+2] < 190){ rowC[y]++; colC[x]++; } } }
+        const RT = w2*0.4, CT = h2*0.35;
+        for(let y=0;y<h2;y++) if(rowC[y] > RT) for(let yy=Math.max(0,y-1); yy<=Math.min(h2-1,y+1); yy++){ const b2=yy*w2*4; for(let x=0;x<w2;x++){ const o=b2+x*4; dd[o]=dd[o+1]=dd[o+2]=255; } }
+        for(let x=0;x<w2;x++) if(colC[x] > CT) for(let xx=Math.max(0,x-1); xx<=Math.min(w2-1,x+1); xx++){ for(let y=0;y<h2;y++){ const o=(y*w2+xx)*4; dd[o]=dd[o+1]=dd[o+2]=255; } }
+        cv.getContext('2d').putImageData(id,0,0);
+      }
+      const out = await worker.recognize(cv, {}, {blocks:true, text:true});
+      const d = out.data;
+      let words = [];
+      const pull = w => { if(w && w.text && w.text.trim()) words.push({s:w.text, x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0}); };
+      if(d.blocks) for(const b of d.blocks) for(const pr of (b.paragraphs||[])) for(const l of (pr.lines||[])) for(const w of (l.words||[])) pull(w);
+      else if(d.words) for(const w of d.words) pull(w);
+      words.sort((a,b) => a.y - b.y);
+      /* 行聚类：y 中心差 < 词高中位值×0.6 → 同行 */
+      const hs = words.map(w=>w.h).sort((a,b)=>a-b);
+      const midH = hs.length ? hs[Math.floor(hs.length/2)] : 20;
+      const lines = [];
+      for(const w of words){
+        const yc = w.y + w.h/2;
+        let ln = lines.find(l => Math.abs(l.y - yc) <= midH*0.6);
+        if(!ln){ ln = {y:yc, parts:[]}; lines.push(ln); }
+        ln.y = (ln.y*(ln.parts.length) + yc)/(ln.parts.length+1);
+        ln.parts.push(w);
+      }
+      for(const ln of lines){
+        ln.parts.sort((a,b) => a.x - b.x);
+        const cells = []; let cur = '';
+        for(let j=0;j<ln.parts.length;j++){
+          const q = ln.parts[j];
+          if(j>0){
+            const prev = ln.parts[j-1];
+            const gap = q.x - (prev.x + prev.w);
+            if(gap > midH*0.8){ cells.push(cur.trim()); cur=''; }
+            else if(gap > midH*0.15) cur += ' ';
+          }
+          cur += q.s;
+        }
+        cells.push(cur.trim());
+        if(cells.some(cc=>cc)) aoa.push(cells);
+      }
+      if(i < n && aoa.length) aoa.push([`— 第 ${i+1} 页 —`]);
+    }
+    for(let r=0;r<aoa.length;r++) aoa[r] = aoa[r].map(v => tidyOcr(String(v).replace(/[|│丨┃]/g,'')));
+    const chars = aoa.reduce((s,r)=>s+r.join('').length, 0);
+    if(!chars) throw new Error('照片太模糊认不出内容——建议用 WPS APP 的「图片转表格」，或升级 Excel 365 用「数据→来自图片的数据」');
+    prog(.85, '生成 Excel…');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = Array.from({length: Math.max(...aoa.map(r=>r.length))}, () => ({wch: 22}));
+    XLSX.utils.book_append_sheet(wb, ws, '认字拼表');
+    const out2 = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    save(new Blob([out2],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '认字拼表完成（照片型，规整表约七八成准——请通读校对）');
+  } finally {
+    await worker.terminate();
+  }
+}
+
 /* ===== 6. PDF → Excel ===== */
 async function pdf2excel(f){
   await ensureEngine(['pdfjs','worker','xlsx']);
@@ -446,14 +531,14 @@ async function pdf2excel(f){
     }
     if(i < pdf.numPages && aoa.length) aoa.push([`— 第 ${i+1} 页 —`]);
   }
-  if(!aoa.length) throw new Error('这个 PDF 里没有可选中的文字（可能是扫描件/纯图片）');
+  if(!aoa.length) return ocrExcel(f); /* 照片型 → 认字拼表兜底（13:58 站长拍板） */
   prog(.85, '生成 Excel…');
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = Array.from({length: Math.max(...aoa.map(r=>r.length))}, () => ({wch: 22}));
   XLSX.utils.book_append_sheet(wb, ws, 'PDF提取');
   const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  save(new Blob([out],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '表格数据已提取（规整表格效果好，乱版面仅供参考）');
+  save(new Blob([out],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '表格数据已提取（文本型直提；若走认字版请校对）');
 }
 </script>
 </body>
