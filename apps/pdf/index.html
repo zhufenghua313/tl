@@ -99,15 +99,7 @@ input[type=file]{display:none}
   </footer>
 </div>
 
-<script src="lib/pdf.min.js"></script>
-<script src="lib/pdf-lib.min.js"></script>
-<script src="lib/mammoth.min.js"></script>
-<script src="lib/xlsx.full.min.js"></script>
-<script src="lib/html2canvas.min.js"></script>
-<script src="lib/jspdf.umd.min.js"></script>
-<script src="lib/jszip.min.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
 /* ===== 模式配置 ===== */
 const MODES = [
@@ -121,6 +113,52 @@ const MODES = [
 let mode = 'img2pdf', dpi = 150, busy = false;
 
 const $ = id => document.getElementById(id);
+
+/* =====【09:58 修复】引擎懒加载：库不再挡按钮——选方向才下载、带进度、浏览器缓存二次秒过 ===== */
+const LIBS = {
+  pdfjs:  {src:'lib/pdf.min.js', g:'pdfjsLib', size:320*1024},
+  worker: {src:'lib/pdf.worker.min.js', g:null, size:1087*1024, blob:true},
+  pdflib: {src:'lib/pdf-lib.min.js', g:'PDFLib', size:525*1024},
+  mammoth:{src:'lib/mammoth.min.js', g:'mammoth', size:642*1024},
+  xlsx:   {src:'lib/xlsx.full.min.js', g:'XLSX', size:881*1024},
+  h2c:    {src:'lib/html2canvas.min.js', g:'html2canvas', size:198*1024},
+  jspdf:  {src:'lib/jspdf.umd.min.js', g:'jspdf', size:365*1024},
+  jszip:  {src:'lib/jszip.min.js', g:'JSZip', size:97*1024},
+};
+const _loaded = {}; let _workerUrl = null;
+function loadLib(k){
+  if(_loaded[k]) return _loaded[k];
+  const L = LIBS[k];
+  if(L.g && window[L.g]) return (_loaded[k] = Promise.resolve());
+  _loaded[k] = (async () => {
+    const r = await fetch(L.src);
+    if(!r.ok) throw new Error('引擎下载失败（' + r.status + '），请稍后再试');
+    const total = +(r.headers.get('content-length') || L.size);
+    let recvd = 0; const chunks = [];
+    const reader = r.body.getReader();
+    for(;;){
+      const {done, value} = await reader.read();
+      if(done) break;
+      chunks.push(value); recvd += value.length;
+      prog(.02 + .3*Math.min(1, recvd/total), `转换引擎下载中 ${Math.min(99, Math.round(recvd/total*100))}%（${L.src.split('/').pop()} · 共 ${fmtSize(total)}，仅首次较慢，之后有缓存）`);
+    }
+    if(L.blob) return new Blob(chunks); /* worker 走 blob URL */
+    const s = document.createElement('script');
+    s.src = URL.createObjectURL(new Blob(chunks, {type:'text/javascript'}));
+    await new Promise((res, rej) => { s.onload = res; s.onerror = () => rej(new Error('引擎初始化失败')); document.head.appendChild(s); });
+  })();
+  return _loaded[k];
+}
+async function ensureEngine(list){
+  for(const k of list){
+    if(k === 'worker'){
+      if(_workerUrl) continue;
+      const blob = await loadLib('worker');
+      _workerUrl = URL.createObjectURL(blob);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = _workerUrl;
+    } else await loadLib(k);
+  }
+}
 const modesEl = $('modes');
 MODES.forEach(m => {
   const d = document.createElement('div');
@@ -182,6 +220,7 @@ async function go(files){
 
 /* ===== 1. 图片 → PDF ===== */
 async function img2pdf(files){
+  await ensureEngine(['pdflib']);
   prog(.1, '读取图片…');
   const imgs = files.filter(f=>/^image\//.test(f.type));
   if(!imgs.length) throw new Error('请选择图片文件（JPG / PNG）');
@@ -208,6 +247,7 @@ async function img2pdf(files){
 
 /* ===== 2. PDF → 图片 ===== */
 async function pdf2img(f){
+  await ensureEngine(['pdfjs','worker','jszip']);
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const n = pdf.numPages;
   if(n > 60) throw new Error('页数太多（'+n+' 页，上限 60），请分批转换');
@@ -240,6 +280,7 @@ async function pdf2img(f){
 
 /* ===== 3. Word → PDF ===== */
 async function word2pdf(f){
+  await ensureEngine(['mammoth','h2c','jspdf']);
   prog(.15, '解析 Word 文档…');
   const r = await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()});
   const html = r.value || '<p>（空文档）</p>';
@@ -247,6 +288,7 @@ async function word2pdf(f){
 }
 /* ===== 4. Excel → PDF ===== */
 async function excel2pdf(f){
+  await ensureEngine(['xlsx','h2c','jspdf']);
   prog(.15, '解析表格…');
   const wb = XLSX.read(await f.arrayBuffer(), {type:'array'});
   let html = '';
@@ -302,6 +344,7 @@ async function htmlToPdf(html, outName, hint){
 
 /* ===== 5. PDF → Word ===== */
 async function pdf2word(f){
+  await ensureEngine(['pdfjs','worker','jszip']);
   prog(.1, '解析 PDF…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const paras = [];
@@ -359,6 +402,7 @@ async function pdf2word(f){
 
 /* ===== 6. PDF → Excel ===== */
 async function pdf2excel(f){
+  await ensureEngine(['pdfjs','worker','xlsx']);
   prog(.1, '解析 PDF…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const aoa = [];
