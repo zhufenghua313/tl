@@ -100,7 +100,7 @@ input[type=file]{display:none}
 
 /* ===== 模式配置（10:27 站长定序：上排 PDF 往外转，下排各家转成 PDF） ===== */
 const MODES = [
-  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'文字型直接提取；照片型自动改走认字（约八九成准请校对，想更准用 Word 2013+ 直接打开 PDF 或 WPS「PDF 转 Word」；首次认字需下模型约20MB）'},
+  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'文字型直接提取（混搭 PDF 的位图插图自动回插）；照片型自动改走认字（约八九成准请校对，想更准用 Word 2013+ 直接打开 PDF 或 WPS「PDF 转 Word」；首次认字需下模型约20MB）'},
   {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（约七八成准请校对，想更准用 WPS「图片转表格」/Excel 365「来自图片的数据」）'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
@@ -294,10 +294,11 @@ async function pdf2word(f){
   await ensureEngine(['pdfjs','worker','jszip']);
   prog(.1, '解析 PDF…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
-  const paras = [];
+  const pages = []; const seenImgs = new Set();
   for(let i=1;i<=pdf.numPages;i++){
     prog(.1 + .6*i/pdf.numPages, `第 ${i}/${pdf.numPages} 页提取…`);
     const page = await pdf.getPage(i);
+    const pageData = {paras: [], images: []};
     const content = await page.getTextContent();
     /* 借鉴成熟方案：按基线 y 坐标容差聚行（PDF 没有段落，只有带坐标的字） */
     const lines = [];
@@ -326,25 +327,71 @@ async function pdf2word(f){
       }
       text = text.replace(/\s{2,}/g,'  ').trim();
       if(!text) continue;
-      if(prevY !== null && (prevY - ln.y) > 30 && paras.length && paras[paras.length-1] !== '') paras.push('');
-      paras.push(text); prevY = ln.y;
+      if(prevY !== null && (prevY - ln.y) > 30 && pageData.paras.length && pageData.paras[pageData.paras.length-1] !== '') pageData.paras.push('');
+      pageData.paras.push(text); prevY = ln.y;
     }
-    if(i < pdf.numPages) paras.push('');
+    /* 插图枚举（15:08 站长拍板：混搭 PDF 插图回插）——位图图片是独立对象可拎出；文本框/形状是矢量绘图指令，拎不出 */
+    try {
+      const ops = await page.getOperatorList();
+      for(let k=0;k<ops.fnArray.length;k++){
+        const fn = ops.fnArray[k];
+        if(fn !== pdfjsLib.OPS.paintImageXObject && fn !== pdfjsLib.OPS.paintJpegXObject) continue;
+        const objId = ops.argsArray[k][0];
+        if(typeof objId !== 'string' || seenImgs.has(objId)) continue;
+        seenImgs.add(objId);
+        let img = null;
+        try { img = page.objs.get(objId); } catch(e){ try { img = page.commonObjs.get(objId); } catch(e2){ continue; } }
+        if(!img) continue;
+        const cv = document.createElement('canvas');
+        try {
+          if(img.bitmap){ cv.width = img.bitmap.width; cv.height = img.bitmap.height; cv.getContext('2d').drawImage(img.bitmap,0,0); }
+          else if(img.data && img.width && img.height){
+            cv.width = img.width; cv.height = img.height;
+            const ctx = cv.getContext('2d'); const idata = ctx.createImageData(img.width, img.height);
+            if(img.kind === 3) idata.data.set(img.data);
+            else if(img.kind === 2){ for(let pp=0,qq=0; pp<img.data.length; pp+=3, qq+=4){ idata.data[qq]=img.data[pp]; idata.data[qq+1]=img.data[pp+1]; idata.data[qq+2]=img.data[pp+2]; idata.data[qq+3]=255; } }
+            else if(img.kind === 1){ const rowB=(img.width+7)>>3; for(let y=0;y<img.height;y++) for(let x=0;x<img.width;x++){ const bit=(img.data[y*rowB+(x>>3)]>>(7-(x&7)))&1; const qq=(y*img.width+x)*4; const v=bit?255:0; idata.data[qq]=idata.data[qq+1]=idata.data[qq+2]=v; idata.data[qq+3]=255; } }
+            else continue;
+            ctx.putImageData(idata,0,0);
+          } else continue;
+        } catch(e) { continue; }
+        if(cv.width < 24 || cv.height < 24) continue; /* 极小装饰图跳过 */
+        const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+        if(blob) pageData.images.push({blob, w: cv.width, h: cv.height});
+      }
+    } catch(e) { /* 图片枚举失败不拦文字 */ }
+    pages.push(pageData);
   }
-  const textAll = paras.join('\n').trim();
-  if(!textAll) return pdf2wordOcr(f); /* 照片型 → 自动切认字（14:52 站长拍板合并入口，与 Excel 同款自动分流） */
+  /* 分流判据只看文字层（15:08 站长确认）：纯拍照件照走认字，不受插图回插影响 */
+  const hasText = pages.some(pd => pd.paras.some(t => t.trim()));
+  if(!hasText) return pdf2wordOcr(f);
   prog(.85, '生成 Word…');
-  /* 最小 docx 三件套（Word/WPS 通用） */
+  /* 最小 docx + 插图回插（图片按出现顺序插在该页文字后；EMU=px×9525） */
+  let imgN = 0; const relItems = [], mediaJobs = [], bodyParts = [];
+  for(const pd of pages){
+    for(const t of pd.paras) bodyParts.push(t ? `<w:p><w:r><w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p>` : '<w:p/>');
+    for(const im of pd.images){
+      imgN++;
+      const rid = 'rIdImg' + imgN;
+      relItems.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${imgN}.png"/>`);
+      bodyParts.push(`<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${Math.round(im.w*9525)}" cy="${Math.round(im.h*9525)}"/><wp:docPr id="${imgN}" name="Picture ${imgN}"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${imgN}" name="image${imgN}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${Math.round(im.w*9525)}" cy="${Math.round(im.h*9525)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`);
+      mediaJobs.push({n: imgN, blob: im.blob});
+    }
+  }
   const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
-    + textAll.split('\n').map(t => t ? `<w:p><w:r><w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p>` : '<w:p/>').join('')
+    + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>'
+    + bodyParts.join('')
     + '</w:body></w:document>';
   const zip = new JSZip();
-  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + (imgN ? '<Default Extension="png" ContentType="image/png"/>' : '') + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
   zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
   zip.file('word/document.xml', docXml);
+  if(imgN){
+    zip.file('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + relItems.join('') + '</Relationships>');
+    for(const mj of mediaJobs) zip.file(`word/media/image${mj.n}.png`, mj.blob);
+  }
   const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', '文字内容已提取为 Word（原排版会简化，图片不在其中）');
+  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', imgN ? `文字内容已提取为 Word，${imgN} 张插图已回插（按出现顺序；文本框/形状是矢量图形不在其中）` : '文字内容已提取为 Word（原排版会简化，无位图插图）');
 }
 
 function tidyOcr(s){
