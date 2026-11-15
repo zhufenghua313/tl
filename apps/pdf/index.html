@@ -303,23 +303,53 @@ async function word2pdf(f){
   const html = r.value || '<p>（空文档）</p>';
   await htmlToPdf(html, f.name.replace(/\.docx?$/i,'') + '.pdf', 'Word 内容已转 PDF');
 }
-/* ===== 4. Excel → PDF ===== */
+/* ===== 4. Excel → PDF（11:43 重构：合并单元格→colspan/rowspan、掐空壳列、尽量还原列宽、单Sheet不写表名） ===== */
 async function excel2pdf(f){
   await ensureEngine(['xlsx','h2c','jspdf']);
   prog(.15, '解析表格…');
   const wb = XLSX.read(await f.arrayBuffer(), {type:'array'});
   let html = '';
   wb.SheetNames.forEach(sn => {
-    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:false, defval:''});
+    const ws = wb.Sheets[sn];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
     if(!aoa.length) return;
-    html += `<h3>${esc(sn)}</h3><table>`;
-    aoa.forEach((row, ri) => {
-      html += '<tr>' + row.map(c => ri===0 ? `<th>${esc(c)}</th>` : `<td>${esc(c)}</td>`).join('') + '</tr>';
+    const maxc = Math.max(...aoa.map(r => r.length), 1);
+    /* 掐全空列：合并单元格拍扁后的空壳列、历史残留空列不再上桌 */
+    const alive = Array.from({length:maxc}, (_,c) => aoa.some(r => String(r[c] ?? '').trim() !== ''));
+    /* 列宽：!cols 里有像素宽就用（封顶240防怪宽），没有就交给浏览器自动分 */
+    const colDefs = ws['!cols'] || [];
+    const wpx = c => (colDefs[c] && colDefs[c].wpx ? Math.min(Math.round(colDefs[c].wpx), 240) : 0);
+    /* 合并单元格 → colspan/rowspan（!merges 左上格才有值，其余格跳过） */
+    const span = {}, cover = {};
+    (ws['!merges'] || []).forEach(m => {
+      let lc = 0; for(let c = m.s.c; c <= m.e.c; c++) if(alive[c]) lc++;
+      const lr = m.e.r - m.s.r + 1;
+      if(lc > 1 || lr > 1) span[m.s.r + ',' + m.s.c] = {c:lc, r:lr};
+      for(let r = m.s.r; r <= m.e.r; r++) for(let c = m.s.c; c <= m.e.c; c++)
+        if(!(r === m.s.r && c === m.s.c)) cover[r + ',' + c] = 1;
+    });
+    if(!alive.some(Boolean)) return;
+    if(wb.SheetNames.length > 1) html += `<h3>${esc(sn)}</h3>`;
+    html += '<table>';
+    aoa.forEach((row, r) => {
+      let cells = '';
+      const w = Math.max(row.length, 1);
+      for(let c = 0; c < w; c++){
+        if(cover[r + ',' + c]) continue;
+        if(!alive[c] && !span[r + ',' + c]) continue;
+        const sp = span[r + ',' + c];
+        const v = row[c] ?? '';
+        const ws0 = (r === 0 && wpx(c)) ? ` style="width:${wpx(c)}px"` : '';
+        const tag = r === 0 ? 'th' : 'td';
+        cells += `<${tag}${ws0}>` + esc(v) + `</${tag}>`;
+        if(sp) cells = cells.slice(0, cells.lastIndexOf('<' + tag)) + `<${tag}${sp.c > 1 ? ` colspan="${sp.c}"` : ''}${sp.r > 1 ? ` rowspan="${sp.r}"` : ''}${ws0}>` + esc(v) + `</${tag}>`;
+      }
+      if(cells) html += '<tr>' + cells + '</tr>';
     });
     html += '</table>';
   });
   if(!html) throw new Error('表格是空的');
-  await htmlToPdf(html, f.name.replace(/\.(xlsx?|csv)$/i,'') + '.pdf', '表格内容已转 PDF（首行为表头加粗）');
+  await htmlToPdf(html, f.name.replace(/\.(xlsx?|csv)$/i,'') + '.pdf', '表格内容已转 PDF（合并单元格与列宽已尽量还原）');
 }
 /* HTML → PDF 公用管道：隐藏容器渲染 → 截图 → 逐页切拼 */
 async function htmlToPdf(html, outName, hint){
