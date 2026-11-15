@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PDF 转换</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233b'/%3E%3Cpath d='M20 10h18l10 10v34a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z' fill='%23E8BC4F'/%3E%3Cpath d='M38 10v10h10' fill='%23d99e2b'/%3E%3Ctext x='32' y='46' font-size='15' font-weight='bold' text-anchor='middle' fill='%2316233b' font-family='Arial' style='letter-spacing:1px'%3EPDF%3C/text%3E%3Cpath d='M46 24l8 8-14 14-8-2 2-8z' fill='%239FB2D6' opacity='.85'/%3E%3C/svg%3E">
+<style>
+:root{--deep:#14213D;--gold:#E8BC4F;--gold2:#d99e2b;--card:#16233b;--line:#2a3c5e;--ink:#EDF1F7;--sub:#8B97AC;--ok:#7fd6a4;--err:#ff9d76}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:linear-gradient(180deg,#0e1729 0%,#121d33 100%);min-height:100vh;color:var(--ink)}
+.wrap{max-width:680px;margin:0 auto;padding:26px 16px 40px}
+.hero{text-align:center;padding:10px 0 4px}
+.hero h1{font-size:25px;letter-spacing:1px}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p{color:var(--sub);font-size:12.5px;margin-top:8px;line-height:1.7}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px}
+.mode{background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s;user-select:none}
+.mode .mi{font-size:21px}
+.mode .mt{font-size:12.5px;font-weight:700;margin-top:5px}
+.mode .md{font-size:10.5px;color:var(--sub);margin-top:2px}
+.mode.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(232,188,79,.13),rgba(232,188,79,.04));box-shadow:0 0 0 1px var(--gold) inset}
+.mode.on .mt{color:var(--gold)}
+.drop{margin-top:16px;background:var(--card);border:2px dashed var(--line);border-radius:15px;padding:34px 16px;text-align:center;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--gold);background:rgba(232,188,79,.05)}
+.drop .di{font-size:34px}
+.drop .dt{font-size:15px;font-weight:700;margin-top:8px}
+.drop .dd{font-size:12px;color:var(--sub);margin-top:5px;line-height:1.7}
+.opts{display:flex;gap:10px;margin-top:13px;flex-wrap:wrap;align-items:center}
+.opt{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:7px 15px;font-size:12.5px;cursor:pointer;transition:.15s}
+.opt.on{color:var(--gold);border-color:var(--gold)}
+.optl{font-size:12px;color:var(--sub)}
+.stage{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px}
+.finfo{display:flex;align-items:center;gap:11px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.06)}
+.finfo .fi{font-size:25px}
+.finfo .fn{font-weight:700;font-size:14.5px;word-break:break-all}
+.finfo .fs{font-size:11.5px;color:var(--sub);margin-top:2px}
+.pbar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:14px}
+.pbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:99px;transition:width .3s}
+.ptxt{font-size:12.5px;color:var(--sub);margin-top:8px;text-align:center;min-height:18px}
+.ptxt.err{color:var(--err)}
+.result{margin-top:15px;text-align:center}
+.dlbtn{display:inline-block;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:11px;color:#20283a;font-weight:800;font-size:15px;padding:13px 34px;cursor:pointer;text-decoration:none}
+.dlbtn:active{transform:scale(.97)}
+.rhint{font-size:11.5px;color:var(--sub);margin-top:9px;line-height:1.7}
+.gallery{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:13px}
+.gallery img{width:86px;height:112px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+footer{text-align:center;color:var(--sub);font-size:12px;padding:24px 0 0;line-height:1.9}
+.ffoot{display:flex;align-items:center;justify-content:center;gap:8px}
+.flogo{display:inline-flex;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#E8BC4F,#d99e2b);align-items:center;justify-content:center;font-size:14px}
+footer a{color:var(--gold);text-decoration:none}
+input[type=file]{display:none}
+@media(max-width:560px){.mode .md{display:none}.mode{padding:10px 4px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>PDF <em>转换</em></h1>
+    <p>图片 / Word / Excel 与 PDF 互转 · 全程在本机浏览器完成，文件不上传服务器 · 建议 50MB 以内</p>
+  </div>
+
+  <div class="modes" id="modes"></div>
+
+  <div class="drop" id="drop">
+    <div class="di" id="dropIcon">🖼</div>
+    <div class="dt" id="dropTitle">图片 → PDF</div>
+    <div class="dd" id="dropDesc">多张图片按顺序合成一个 PDF</div>
+    <input type="file" id="file">
+  </div>
+
+  <div class="opts" id="opts" style="display:none">
+    <span class="optl">清晰度：</span>
+    <button class="opt" data-v="96">屏幕 96dpi</button>
+    <button class="opt on" data-v="150">标准 150dpi</button>
+    <button class="opt" data-v="300">打印 300dpi</button>
+  </div>
+
+  <div class="stage" id="stage" style="display:none">
+    <div class="finfo">
+      <div class="fi" id="fIcon">📄</div>
+      <div>
+        <div class="fn" id="fName"></div>
+        <div class="fs" id="fSize"></div>
+      </div>
+    </div>
+    <div class="pbar"><i id="pfill"></i></div>
+    <div class="ptxt" id="ptxt">准备中…</div>
+    <div class="result" id="result" style="display:none">
+      <div class="gallery" id="gallery"></div>
+      <a class="dlbtn" id="dlbtn" download>⬇ 下载结果</a>
+      <div class="rhint" id="rhint"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="ffoot"><span class="flogo">🧰</span>欢乐工具站 · PDF 转换</div>
+    <div><a href="/">← 返回欢乐工具站</a></div>
+  </footer>
+</div>
+
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/mammoth.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/html2canvas.min.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+
+/* ===== 模式配置 ===== */
+const MODES = [
+  {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
+  {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
+  {id:'word2pdf', icon:'📝', title:'Word → PDF', desc:'.docx 转 PDF', accept:'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', multi:false, hint:'保留文字与基本排版，复杂样式会简化'},
+  {id:'excel2pdf', icon:'📊', title:'Excel → PDF', desc:'.xlsx 转 PDF', accept:'.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', multi:false, hint:'每个工作表自动分页排版'},
+  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
+  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
+];
+let mode = 'img2pdf', dpi = 150, busy = false;
+
+const $ = id => document.getElementById(id);
+const modesEl = $('modes');
+MODES.forEach(m => {
+  const d = document.createElement('div');
+  d.className = 'mode' + (m.id===mode?' on':'');
+  d.innerHTML = `<div class="mi">${m.icon}</div><div class="mt">${m.title}</div><div class="md">${m.desc}</div>`;
+  d.onclick = () => { if(busy) return; mode = m.id;
+    document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on')); d.classList.add('on');
+    $('file').accept = m.accept; $('file').multiple = m.multi;
+    $('dropIcon').textContent = m.icon; $('dropTitle').textContent = m.title;
+    $('dropDesc').textContent = m.hint; reset(); };
+  modesEl.appendChild(d);
+});
+$('file').accept = MODES[0].accept; $('file').multiple = true;
+
+/* ===== DPI 选项 ===== */
+document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  dpi = +b.dataset.v;
+});
+
+/* ===== 拖拽 ===== */
+const drop = $('drop');
+drop.onclick = () => { if(!busy) $('file').click(); };
+drop.ondragover = e => {e.preventDefault(); drop.classList.add('over')};
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => {e.preventDefault(); drop.classList.remove('over'); if(!busy) go([...e.dataTransfer.files])};
+$('file').onchange = e => { if(e.target.files.length) go([...e.target.files]); e.target.value=''; };
+
+function reset(){ $('stage').style.display='none'; $('result').style.display='none'; $('gallery').innerHTML=''; }
+function prog(p, t){ $('pfill').style.width = Math.round(p*100)+'%'; if(t!==undefined) $('ptxt').textContent = t; }
+function perr(t){ $('ptxt').textContent = t; $('ptxt').classList.add('err'); }
+function fmtSize(n){ return n>1048576 ? (n/1048576).toFixed(1)+' MB' : Math.round(n/1024)+' KB'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function save(blob, name, hint){
+  const a = $('dlbtn'); a.href = URL.createObjectURL(blob); a.download = name;
+  $('result').style.display = 'block'; $('rhint').innerHTML = hint || '';
+  prog(1, '完成 ✓ 点击下方按钮保存');
+}
+
+/* ===== 主流程 ===== */
+async function go(files){
+  if(busy) return; busy = true; reset();
+  $('stage').style.display = 'block'; $('ptxt').classList.remove('err');
+  const f = files[0];
+  $('fIcon').textContent = files.length>1 ? '🗂' : (MODES.find(m=>m.id===mode).icon);
+  $('fName').textContent = files.length>1 ? `${files.length} 个文件：${f.name} 等` : f.name;
+  $('fSize').textContent = files.length>1 ? '共 '+fmtSize(files.reduce((s,x)=>s+x.size,0)) : fmtSize(f.size);
+  $('opts').style.display = (mode==='pdf2img') ? 'flex' : 'none';
+  try{
+    if(mode==='img2pdf') await img2pdf(files);
+    else if(mode==='pdf2img') await pdf2img(f);
+    else if(mode==='word2pdf') await word2pdf(f);
+    else if(mode==='excel2pdf') await excel2pdf(f);
+    else if(mode==='pdf2word') await pdf2word(f);
+    else if(mode==='pdf2excel') await pdf2excel(f);
+  }catch(err){ console.error(err); perr('转换失败：' + (err.message||err)); }
+  busy = false;
+}
+
+/* ===== 1. 图片 → PDF ===== */
+async function img2pdf(files){
+  prog(.1, '读取图片…');
+  const imgs = files.filter(f=>/^image\//.test(f.type));
+  if(!imgs.length) throw new Error('请选择图片文件（JPG / PNG）');
+  const doc = await PDFLib.PDFDocument.create();
+  for(let i=0;i<imgs.length;i++){
+    const buf = await imgs[i].arrayBuffer();
+    let img;
+    try{ img = imgs[i].type==='image/png' ? await doc.embedPng(buf) : await doc.embedJpg(buf); }
+    catch(e){ throw new Error(`${imgs[i].name} 不是标准 JPG/PNG（可能是不支持的编码）`); }
+    /* 按图片方向铺 A4 等比页：横图横页竖图竖页 */
+    const pw = 595.28, ph = 841.89;
+    const land = img.width > img.height;
+    const w = land ? ph : pw, h = land ? pw : ph;
+    const scale = Math.min(w/img.width, h/img.height);
+    const iw = img.width*scale, ih = img.height*scale;
+    const page = doc.addPage([w, h]);
+    page.drawImage(img, {x:(w-iw)/2, y:(h-ih)/2, width:iw, height:ih});
+    prog(.1 + .7*(i+1)/imgs.length, `处理第 ${i+1}/${imgs.length} 张…`);
+  }
+  prog(.9, '生成 PDF…');
+  const bytes = await doc.save();
+  save(new Blob([bytes],{type:'application/pdf'}), '图片合集.pdf', `${imgs.length} 张图片已合成 PDF`);
+}
+
+/* ===== 2. PDF → 图片 ===== */
+async function pdf2img(f){
+  const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+  const n = pdf.numPages;
+  if(n > 60) throw new Error('页数太多（'+n+' 页，上限 60），请分批转换');
+  const blobs = [], names = [];
+  for(let i=1;i<=n;i++){
+    prog(.05 + .8*i/n, `第 ${i}/${n} 页上色…`);
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({scale:1});
+    /* dpi/72 = 缩放比（PDF 坐标单位是点，1 点 = 1/72 英寸）；护栏：canvas 单边不超 12000px */
+    let scale = dpi/72;
+    if(vp.height*scale > 12000 || vp.width*scale > 12000) scale = 12000/Math.max(vp.height, vp.width);
+    const vp2 = page.getViewport({scale});
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(vp2.width); cv.height = Math.round(vp2.height);
+    await page.render({canvasContext: cv.getContext('2d'), viewport: vp2}).promise;
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .92));
+    blobs.push(blob); names.push(`第${String(i).padStart(3,'0')}页.jpg`);
+    const th = document.createElement('canvas'); th.width=86; th.height=112;
+    th.getContext('2d').drawImage(cv,0,0,86,112);
+    const img = new Image(); img.src = th.toDataURL('image/jpeg',.7);
+    $('gallery').appendChild(img);
+  }
+  prog(.92, '打包…');
+  if(blobs.length === 1){ save(blobs[0], names[0], '一页文档直接保存单图'); return; }
+  const zip = new JSZip();
+  for(let i=0;i<blobs.length;i++) zip.file(names[i], blobs[i]);
+  const zblob = await zip.generateAsync({type:'blob'});
+  save(zblob, 'PDF转图片.zip', `${n} 页已打成 ZIP 压缩包`);
+}
+
+/* ===== 3. Word → PDF ===== */
+async function word2pdf(f){
+  prog(.15, '解析 Word 文档…');
+  const r = await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()});
+  const html = r.value || '<p>（空文档）</p>';
+  await htmlToPdf(html, f.name.replace(/\.docx?$/i,'') + '.pdf', 'Word 内容已转 PDF');
+}
+/* ===== 4. Excel → PDF ===== */
+async function excel2pdf(f){
+  prog(.15, '解析表格…');
+  const wb = XLSX.read(await f.arrayBuffer(), {type:'array'});
+  let html = '';
+  wb.SheetNames.forEach(sn => {
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:false, defval:''});
+    if(!aoa.length) return;
+    html += `<h3>${esc(sn)}</h3><table>`;
+    aoa.forEach((row, ri) => {
+      html += '<tr>' + row.map(c => ri===0 ? `<th>${esc(c)}</th>` : `<td>${esc(c)}</td>`).join('') + '</tr>';
+    });
+    html += '</table>';
+  });
+  if(!html) throw new Error('表格是空的');
+  await htmlToPdf(html, f.name.replace(/\.(xlsx?|csv)$/i,'') + '.pdf', '表格内容已转 PDF（首行为表头加粗）');
+}
+/* HTML → PDF 公用管道：隐藏容器渲染 → 截图 → 逐页切拼 */
+async function htmlToPdf(html, outName, hint){
+  prog(.4, '排版…');
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:-9999px;top:0;width:700px;background:#fff;color:#222;font-family:"Microsoft YaHei",sans-serif;font-size:13px;line-height:1.75;padding:28px 30px;';
+  box.innerHTML = html
+    .replace(/<table/g, '<table style="border-collapse:collapse;width:100%;margin:8px 0 16px"')
+    .replace(/<t[dh]/g, '<t$1 style="border:1px solid #bbb;padding:5px 7px;font-size:11.5px;word-break:break-all"')
+    .replace(/<h1/g,'<h1 style="font-size:20px;margin:14px 0 10px"')
+    .replace(/<h2/g,'<h2 style="font-size:17px;margin:12px 0 8px"')
+    .replace(/<h3/g,'<h3 style="font-size:15px;margin:10px 0 7px"')
+    .replace(/<img/g, '<img style="max-width:100%"')
+    .replace(/<p/g, '<p style="margin:6px 0"');
+  document.body.appendChild(box);
+  await new Promise(r => setTimeout(r, 80));
+  const canvas = await html2canvas(box, {scale: 2, backgroundColor:'#fff'});
+  box.remove();
+  prog(.75, '合成 PDF…');
+  const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+  const pw = 210, margin = 8, usable = pw - margin*2;
+  const ph = 297, pageH = ph - margin*2;
+  /* 长图按 A4 可用高度切片逐页拼 */
+  const slicePx = Math.floor(canvas.width * pageH / usable);
+  const totalPages = Math.ceil(canvas.height / slicePx);
+  let y = 0, page = 0;
+  while(y < canvas.height){
+    const h = Math.min(slicePx, canvas.height - y);
+    const cv = document.createElement('canvas'); cv.width = canvas.width; cv.height = h;
+    cv.getContext('2d').drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+    if(page>0) pdf.addPage();
+    pdf.addImage(cv.toDataURL('image/jpeg',.92), 'JPEG', margin, margin, usable, h*usable/canvas.width);
+    y += h; page++;
+    prog(.75 + .2*Math.min(page,totalPages)/totalPages, `第 ${page} 页…`);
+  }
+  const blob = pdf.output('blob');
+  save(blob, outName, hint);
+}
+
+/* ===== 5. PDF → Word ===== */
+async function pdf2word(f){
+  prog(.1, '解析 PDF…');
+  const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+  const paras = [];
+  for(let i=1;i<=pdf.numPages;i++){
+    prog(.1 + .6*i/pdf.numPages, `第 ${i}/${pdf.numPages} 页提取…`);
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    /* 借鉴成熟方案：按基线 y 坐标容差聚行（PDF 没有段落，只有带坐标的字） */
+    const lines = [];
+    for(const it of content.items){
+      if(!it.str || !it.str.trim()) continue;
+      const x = it.transform[4], y = it.transform[5], fs = Math.abs(it.transform[3]) || Math.abs(it.transform[0]) || 12;
+      let ln = lines.find(l => Math.abs(l.y - y) <= Math.max(2.5, fs*0.35));
+      if(!ln){ ln = {y, parts:[]}; lines.push(ln); }
+      ln.parts.push({x, s: it.str, w: it.width || 0, fs});
+    }
+    lines.sort((a,b) => b.y - a.y);
+    let prevY = null;
+    for(const ln of lines){
+      ln.parts.sort((a,b) => a.x - b.x);
+      /* 借鉴成熟方案黄金公式：横向间隙 > 字号×0.18 补空格，> 字号×4 是列间隙 */
+      let text = '';
+      for(let j=0;j<ln.parts.length;j++){
+        const p = ln.parts[j];
+        if(j>0){
+          const prev = ln.parts[j-1];
+          const gap = p.x - (prev.x + prev.w);
+          if(gap > p.fs*4) text += '   ';
+          else if(gap > p.fs*0.18) text += ' ';
+        }
+        text += p.s;
+      }
+      text = text.replace(/\s{2,}/g,'  ').trim();
+      if(!text) continue;
+      if(prevY !== null && (prevY - ln.y) > 30 && paras.length && paras[paras.length-1] !== '') paras.push('');
+      paras.push(text); prevY = ln.y;
+    }
+    if(i < pdf.numPages) paras.push('');
+  }
+  const textAll = paras.join('\n').trim();
+  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字（可能是扫描件/纯图片），请用「PDF → 图片」');
+  prog(.85, '生成 Word…');
+  /* 最小 docx 三件套（Word/WPS 通用） */
+  const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+    + textAll.split('\n').map(t => t ? `<w:p><w:r><w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p>` : '<w:p/>').join('')
+    + '</w:body></w:document>';
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  zip.file('word/document.xml', docXml);
+  const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', '文字内容已提取为 Word（原排版会简化，图片不在其中）');
+}
+
+/* ===== 6. PDF → Excel ===== */
+async function pdf2excel(f){
+  prog(.1, '解析 PDF…');
+  const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+  const aoa = [];
+  for(let i=1;i<=pdf.numPages;i++){
+    prog(.1 + .6*i/pdf.numPages, `第 ${i}/${pdf.numPages} 页提取…`);
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = [];
+    for(const it of content.items){
+      if(!it.str || !it.str.trim()) continue;
+      const x = it.transform[4], y = it.transform[5], fs = Math.abs(it.transform[3]) || Math.abs(it.transform[0]) || 12;
+      let ln = lines.find(l => Math.abs(l.y - y) <= Math.max(2.5, fs*0.35));
+      if(!ln){ ln = {y, parts:[]}; lines.push(ln); }
+      ln.parts.push({x, s: it.str, w: it.width || 0, fs});
+    }
+    lines.sort((a,b) => b.y - a.y);
+    for(const ln of lines){
+      ln.parts.sort((a,b) => a.x - b.x);
+      /* 列切分：横向间隙 > 字号×0.8 → 换列；列内小间隙 > 字号×0.18 补空格 */
+      const cells = []; let cur = '';
+      for(let j=0;j<ln.parts.length;j++){
+        const p = ln.parts[j];
+        if(j>0){
+          const prev = ln.parts[j-1];
+          const gap = p.x - (prev.x + prev.w);
+          if(gap > Math.max(p.fs, 8) * 0.8){ cells.push(cur.trim()); cur=''; }
+          else if(gap > p.fs*0.18) cur += ' ';
+        }
+        cur += p.s;
+      }
+      cells.push(cur.trim());
+      if(cells.some(c=>c)) aoa.push(cells);
+    }
+    if(i < pdf.numPages && aoa.length) aoa.push([`— 第 ${i+1} 页 —`]);
+  }
+  if(!aoa.length) throw new Error('这个 PDF 里没有可选中的文字（可能是扫描件/纯图片）');
+  prog(.85, '生成 Excel…');
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = Array.from({length: Math.max(...aoa.map(r=>r.length))}, () => ({wch: 22}));
+  XLSX.utils.book_append_sheet(wb, ws, 'PDF提取');
+  const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  save(new Blob([out],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '表格数据已提取（规整表格效果好，乱版面仅供参考）');
+}
+</script>
+</body>
+</html>
