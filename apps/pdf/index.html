@@ -103,6 +103,7 @@ const MODES = [
   {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
   {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
+  {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：印刷体约八九成准，模糊/手写会费劲；首次需下载认字模型约20MB'},
   {id:'word2pdf', icon:'📝', title:'Word → PDF', desc:'.docx 转 PDF', accept:'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', multi:false, hint:'保留文字与基本排版，复杂样式会简化'},
   {id:'excel2pdf', icon:'📊', title:'Excel → PDF', desc:'.xlsx 转 PDF', accept:'.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', multi:false, hint:'每个工作表自动分页排版'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
@@ -118,6 +119,7 @@ const LIBS = {
   pdflib: {src:'/apps/pdf/lib/pdf-lib.min.js', g:'PDFLib', size:525*1024},
   mammoth:{src:'/apps/pdf/lib/mammoth.min.js', g:'mammoth', size:642*1024},
   xlsx:   {src:'/apps/pdf/lib/xlsx.full.min.js', g:'XLSX', size:881*1024},
+  tessjs: {src:'/apps/pdf/lib/tess/tesseract.min.js', g:'Tesseract', size:67*1024},
   h2c:    {src:'/apps/pdf/lib/html2canvas.min.js', g:'html2canvas', size:198*1024},
   jspdf:  {src:'/apps/pdf/lib/jspdf.umd.min.js', g:'jspdf', size:365*1024},
   jszip:  {src:'/apps/pdf/lib/jszip.min.js', g:'JSZip', size:97*1024},
@@ -153,7 +155,25 @@ async function ensureEngine(list){
       const blob = await loadLib('worker');
       _workerUrl = URL.createObjectURL(blob);
       pdfjsLib.GlobalWorkerOptions.workerSrc = _workerUrl;
+    } else if(k === 'tess'){
+      await loadLib('tessjs');
+      /* 认字三部件带进度预取（tesseract 内部也会 fetch，此处先拉一遍喂进 HTTP 缓存，二次秒过） */
+      await prefetch('/apps/pdf/lib/tess/worker.min.js', '认字引擎 1/3');
+      await prefetch('/apps/pdf/lib/tess/tesseract-core-simd.wasm.js', '认字引擎 2/3');
+      await prefetch('/apps/pdf/lib/tess/chi_sim.traineddata.gz', '中文认字模型 3/3');
     } else await loadLib(k);
+  }
+}
+async function prefetch(url, label){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('认字模型下载失败（' + r.status + '），请稍后再试');
+  const total = +(r.headers.get('content-length') || 0);
+  let recvd = 0; const reader = r.body.getReader();
+  for(;;){
+    const {done, value} = await reader.read();
+    if(done) break;
+    recvd += value.length;
+    if(total) prog(.02, `${label} ${Math.min(99, Math.round(recvd/total*100))}%（共 ${fmtSize(total)}，仅首次下载，之后有缓存）`);
   }
 }
 const modesEl = $('modes');
@@ -209,6 +229,7 @@ async function go(files){
     else if(mode==='word2pdf') await word2pdf(f);
     else if(mode==='excel2pdf') await excel2pdf(f);
     else if(mode==='pdf2word') await pdf2word(f);
+    else if(mode==='pdf2wordOcr') await pdf2wordOcr(f);
     else if(mode==='pdf2excel') await pdf2excel(f);
   }catch(err){ console.error(err); perr('转换失败：' + (err.message||err)); }
   busy = false;
@@ -381,7 +402,7 @@ async function pdf2word(f){
     if(i < pdf.numPages) paras.push('');
   }
   const textAll = paras.join('\n').trim();
-  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字（可能是扫描件/纯图片），请用「PDF → 图片」');
+  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字——它是扫描件/照片型 PDF，请改用「扫描件 → Word」（认字版）');
   prog(.85, '生成 Word…');
   /* 最小 docx 三件套（Word/WPS 通用） */
   const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -394,6 +415,49 @@ async function pdf2word(f){
   zip.file('word/document.xml', docXml);
   const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
   save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', '文字内容已提取为 Word（原排版会简化，图片不在其中）');
+}
+
+/* ===== 5b. 扫描件 PDF → Word（OCR 认字版，与文字型走完全隔离的两条路） ===== */
+async function pdf2wordOcr(f){
+  await ensureEngine(['pdfjs','worker','tess']);
+  prog(.1, '渲染页面…');
+  const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+  const n = pdf.numPages;
+  if(n > 30) throw new Error('扫描件认字较慢，单次上限 30 页（当前 ' + n + ' 页），请分批转换');
+  const worker = await Tesseract.createWorker('chi_sim', 1, {
+    workerPath: '/apps/pdf/lib/tess/worker.min.js',
+    corePath: '/apps/pdf/lib/tess/',
+    langPath: '/apps/pdf/lib/tess/',
+  });
+  let textAll = '';
+  try{
+    for(let i=1;i<=n;i++){
+      prog(.1 + .75*i/n, `第 ${i}/${n} 页认字中…（扫描件认字较慢，请稍候）`);
+      const page = await pdf.getPage(i);
+      let scale = 2;
+      const vp1 = page.getViewport({scale:1});
+      if(vp1.height*scale > 12000 || vp1.width*scale > 12000) scale = 12000/Math.max(vp1.height, vp1.width);
+      const vp = page.getViewport({scale});
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+      await page.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
+      const { data } = await worker.recognize(cv);
+      const t = (data.text || '').replace(/\n{2,}/g, '\n').trim();
+      if(t){ if(textAll) textAll += '\n'; textAll += t; }
+    }
+  } finally { await worker.terminate(); }
+  if(!textAll.trim()) throw new Error('认字师傅也没认出字来——这页可能太空或太模糊');
+  prog(.92, '生成 Word…');
+  const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+    + textAll.split('\n').map(t => t ? `<w:p><w:r><w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p>` : '<w:p/>').join('')
+    + '</w:body></w:document>';
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  zip.file('word/document.xml', docXml);
+  const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', 'OCR 认字完成（印刷体约八九成准，建议通读校对一遍）');
 }
 
 /* ===== 6. PDF → Excel ===== */
