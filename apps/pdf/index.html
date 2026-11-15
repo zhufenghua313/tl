@@ -419,7 +419,7 @@ async function pdf2word(f){
 
 /* ===== 5b. 扫描件 PDF → Word（OCR 认字版，与文字型走完全隔离的两条路） ===== */
 async function pdf2wordOcr(f){
-  await ensureEngine(['pdfjs','worker','tess']);
+  await ensureEngine(['pdfjs','worker','tess','jszip']);
   prog(.1, '渲染页面…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const n = pdf.numPages;
