@@ -101,7 +101,7 @@ input[type=file]{display:none}
 /* ===== 模式配置（10:27 站长定序：上排 PDF 往外转，下排各家转成 PDF） ===== */
 const MODES = [
   {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
-  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（规整表七八成准，请校对）'},
+  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（约七八成准请校对，想更准用 WPS「图片转表格」/Excel 365「来自图片的数据」）'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
   {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：印刷体约八九成准，模糊/手写会费劲；首次需下载认字模型约20MB'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
@@ -411,7 +411,7 @@ async function pdf2wordOcr(f){
 /* ===== 6b. 照片型 PDF → Excel（认字拼表兜底）：认字师傅带坐标认字 → 按y聚行/按x间隙切列 → 拼表；认不动指路 WPS/Excel 365 ===== */
 async function ocrExcel(f){
   await ensureEngine(['pdfjs','worker','tess','jszip','xlsx']);
-  prog(.1, '照片型表格，改走认字拼表…');
+  prog(.1, '照片型表格，改走认字拼表（准确性有限，完成后请校对）…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const n = pdf.numPages;
   if(n > 30) throw new Error('照片认字较慢，单次上限 30 页（当前 ' + n + ' 页），请分批转换');
@@ -437,17 +437,39 @@ async function ocrExcel(f){
         const id = cv.getContext('2d').getImageData(0,0,w2,h2), dd = id.data;
         const rowC = new Int32Array(h2), colC = new Int32Array(w2);
         for(let y=0;y<h2;y++){ const base=y*w2*4; for(let x=0;x<w2;x++){ const o=base+x*4; if(0.299*dd[o]+0.587*dd[o+1]+0.114*dd[o+2] < 190){ rowC[y]++; colC[x]++; } } }
-        const RT = w2*0.4, CT = h2*0.35;
+        const RT = w2*0.4, CT = h2*0.28;
         for(let y=0;y<h2;y++) if(rowC[y] > RT) for(let yy=Math.max(0,y-1); yy<=Math.min(h2-1,y+1); yy++){ const b2=yy*w2*4; for(let x=0;x<w2;x++){ const o=b2+x*4; dd[o]=dd[o+1]=dd[o+2]=255; } }
         for(let x=0;x<w2;x++) if(colC[x] > CT) for(let xx=Math.max(0,x-1); xx<=Math.min(w2-1,x+1); xx++){ for(let y=0;y<h2;y++){ const o=(y*w2+xx)*4; dd[o]=dd[o+1]=dd[o+2]=255; } }
+        /* 竖线段扫：逐列连续暗段 >12% 表高 = 残线，抹白（消灭假"1"） */
+        {
+          const isDk = (x,y) => { const o2=(y*w2+x)*4; return 0.299*dd[o2]+0.587*dd[o2+1]+0.114*dd[o2+2] < 190; };
+          const segT = Math.max(10, h2*0.12);
+          for(let x=0;x<w2;x++){
+            let y=0;
+            while(y<h2){
+              if(isDk(x,y)){
+                let y2=y; while(y2<h2 && isDk(x,y2)) y2++;
+                if(y2-y > segT) for(let yy=Math.max(0,y-2); yy<Math.min(h2,y2+2); yy++){ const o3=(yy*w2+x)*4; dd[o3]=dd[o3+1]=dd[o3+2]=255; }
+                y=y2;
+              } else y++;
+            }
+          }
+        }
         cv.getContext('2d').putImageData(id,0,0);
       }
       const out = await worker.recognize(cv, {}, {blocks:true, text:true});
       const d = out.data;
       let words = [];
-      const pull = w => { if(w && w.text && w.text.trim()) words.push({s:w.text, x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0}); };
+      const LINEY = /^[|│丨┃一─—―_=·.'`\]\[【】『』「」、°]+$/;
+      const pull = w => { if(w && w.text && w.text.trim() && !LINEY.test(w.text)) words.push({s:w.text, x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0}); };
       if(d.blocks) for(const b of d.blocks) for(const pr of (b.paragraphs||[])) for(const l of (pr.lines||[])) for(const w of (l.words||[])) pull(w);
       else if(d.words) for(const w of d.words) pull(w);
+      /* 细长竖条过滤：又窄又高的词 = 线残渣（真数字1宽窄正常） */
+      {
+        const hs2 = words.map(w=>w.h).sort((a,b)=>a-b);
+        const mh2 = hs2.length ? hs2[Math.floor(hs2.length/2)] : 20;
+        words = words.filter(w => !(w.h > mh2*1.15 && w.w < mh2*0.4));
+      }
       words.sort((a,b) => a.y - b.y);
       /* 行聚类：y 中心差 < 词高中位值×0.6 → 同行 */
       const hs = words.map(w=>w.h).sort((a,b)=>a-b);
@@ -478,7 +500,9 @@ async function ocrExcel(f){
       }
       if(i < n && aoa.length) aoa.push([`— 第 ${i+1} 页 —`]);
     }
-    for(let r=0;r<aoa.length;r++) aoa[r] = aoa[r].map(v => tidyOcr(String(v).replace(/[|│丨┃]/g,'')));
+    for(let r=0;r<aoa.length;r++) aoa[r] = aoa[r].map(v => { let s = tidyOcr(String(v).replace(/[|│丨┃]/g,'').replace(/[\]\[【】『』「」、°]/g,''));
+        if(/^[IloO0-9\s]+$/.test(s) && /[IloO]/.test(s)) s = s.replace(/I/g,'1').replace(/l/g,'1').replace(/O/g,'0').replace(/\s+/g,'');
+        return s; });
     const chars = aoa.reduce((s,r)=>s+r.join('').length, 0);
     if(!chars) throw new Error('照片太模糊认不出内容——建议用 WPS APP 的「图片转表格」，或升级 Excel 365 用「数据→来自图片的数据」');
     prog(.85, '生成 Excel…');
@@ -487,7 +511,7 @@ async function ocrExcel(f){
     ws['!cols'] = Array.from({length: Math.max(...aoa.map(r=>r.length))}, () => ({wch: 22}));
     XLSX.utils.book_append_sheet(wb, ws, '认字拼表');
     const out2 = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    save(new Blob([out2],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '认字拼表完成（照片型，规整表约七八成准——请通读校对）');
+    save(new Blob([out2],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '认字拼表完成（照片型，约七八成准，请通读校对——想更省心可用 WPS「图片转表格」或 Excel 365「来自图片的数据」）');
   } finally {
     await worker.terminate();
   }
