@@ -103,7 +103,7 @@ const MODES = [
   {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
   {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（约七八成准请校对，想更准用 WPS「图片转表格」/Excel 365「来自图片的数据」）'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
-  {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：印刷体约八九成准，模糊/手写会费劲；首次需下载认字模型约20MB'},
+  {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：照片型约八九成准需校对，模糊/手写会费劲；想更准可用 Word 2013+ 直接打开 PDF 或 WPS「PDF 转 Word」；首次需下载认字模型约20MB'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
 ];
 let mode = 'pdf2word', dpi = 150, busy = false;
@@ -334,7 +334,7 @@ async function pdf2word(f){
     if(i < pdf.numPages) paras.push('');
   }
   const textAll = paras.join('\n').trim();
-  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字——它是扫描件/照片型 PDF，请改用「扫描件 → Word」（认字版）');
+  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字（照片型/扫描件）——可改用「🔍扫描件 → Word」认字版（约八九成准需校对），或用 Word 2013+ 直接打开此 PDF 自动转换，或 WPS 的「PDF 转 Word」');
   prog(.85, '生成 Word…');
   /* 最小 docx 三件套（Word/WPS 通用） */
   const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -364,7 +364,7 @@ function tidyOcr(s){
 /* ===== 5b. 扫描件 PDF → Word（OCR 认字版，与文字型走完全隔离的两条路） ===== */
 async function pdf2wordOcr(f){
   await ensureEngine(['pdfjs','worker','tess','jszip']);
-  prog(.1, '渲染页面…');
+  prog(.1, '照片型认字中（准确性有限，完成后请校对）…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const n = pdf.numPages;
   if(n > 30) throw new Error('扫描件认字较慢，单次上限 30 页（当前 ' + n + ' 页），请分批转换');
@@ -405,7 +405,7 @@ async function pdf2wordOcr(f){
   zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
   zip.file('word/document.xml', docXml);
   const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', 'OCR 认字完成（印刷体约八九成准，建议通读校对一遍）');
+  save(blob, f.name.replace(/\.pdf$/i,'') + '.docx', '认字版完成（照片型，印刷体约八九成准，请通读校对——想更准可用 Word 2013+ 直接打开此 PDF 自动转换，或 WPS 的「PDF 转 Word」）');
 }
 
 /* ===== 6b. 照片型 PDF → Excel（认字拼表兜底）：认字师傅带坐标认字 → 按y聚行/按x间隙切列 → 拼表；认不动指路 WPS/Excel 365 ===== */
