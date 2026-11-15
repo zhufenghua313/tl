@@ -100,10 +100,9 @@ input[type=file]{display:none}
 
 /* ===== 模式配置（10:27 站长定序：上排 PDF 往外转，下排各家转成 PDF） ===== */
 const MODES = [
-  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
+  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'文字型直接提取；照片型自动改走认字（约八九成准请校对，想更准用 Word 2013+ 直接打开 PDF 或 WPS「PDF 转 Word」；首次认字需下模型约20MB）'},
   {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'文本型直接提取；照片型自动改走认字拼表（约七八成准请校对，想更准用 WPS「图片转表格」/Excel 365「来自图片的数据」）'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
-  {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：照片型约八九成准需校对，模糊/手写会费劲；想更准可用 Word 2013+ 直接打开 PDF 或 WPS「PDF 转 Word」；首次需下载认字模型约20MB'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
 ];
 let mode = 'pdf2word', dpi = 150, busy = false;
@@ -223,7 +222,6 @@ async function go(files){
     if(mode==='img2pdf') await img2pdf(files);
     else if(mode==='pdf2img') await pdf2img(f);
     else if(mode==='pdf2word') await pdf2word(f);
-    else if(mode==='pdf2wordOcr') await pdf2wordOcr(f);
     else if(mode==='pdf2excel') await pdf2excel(f);
   }catch(err){ console.error(err); perr('转换失败：' + (err.message||err)); }
   busy = false;
@@ -334,7 +332,7 @@ async function pdf2word(f){
     if(i < pdf.numPages) paras.push('');
   }
   const textAll = paras.join('\n').trim();
-  if(!textAll) throw new Error('这个 PDF 里没有可选中的文字（照片型/扫描件）——可改用「🔍扫描件 → Word」认字版（约八九成准需校对），或用 Word 2013+ 直接打开此 PDF 自动转换，或 WPS 的「PDF 转 Word」');
+  if(!textAll) return pdf2wordOcr(f); /* 照片型 → 自动切认字（14:52 站长拍板合并入口，与 Excel 同款自动分流） */
   prog(.85, '生成 Word…');
   /* 最小 docx 三件套（Word/WPS 通用） */
   const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
