@@ -290,6 +290,41 @@ async function pdf2img(f){
 /* ===== 3/4 已裁撤（13:32 站长拍板）：Word/Excel→PDF 让位 Office 自带「另存为PDF」金标准；htmlToPdf 随管道退役 ===== */
 
 /* ===== 5. PDF → Word ===== */
+/* 公共插图拎取（Word/Excel 两线共用）：位图图片是独立对象可拎出；文本框/形状是矢量绘图指令，拎不出 */
+async function grabPageImages(page, seenImgs){
+  const out = [];
+  try {
+    const ops = await page.getOperatorList();
+    for(let k=0;k<ops.fnArray.length;k++){
+      const fn = ops.fnArray[k];
+      if(fn !== pdfjsLib.OPS.paintImageXObject && fn !== pdfjsLib.OPS.paintJpegXObject) continue;
+      const objId = ops.argsArray[k][0];
+      if(typeof objId !== 'string' || seenImgs.has(objId)) continue;
+      seenImgs.add(objId);
+      let img = null;
+      try { img = page.objs.get(objId); } catch(e){ try { img = page.commonObjs.get(objId); } catch(e2){ continue; } }
+      if(!img) continue;
+      const cv = document.createElement('canvas');
+      try {
+        if(img.bitmap){ cv.width = img.bitmap.width; cv.height = img.bitmap.height; cv.getContext('2d').drawImage(img.bitmap,0,0); }
+        else if(img.data && img.width && img.height){
+          cv.width = img.width; cv.height = img.height;
+          const ctx = cv.getContext('2d'); const idata = ctx.createImageData(img.width, img.height);
+          if(img.kind === 3) idata.data.set(img.data);
+          else if(img.kind === 2){ for(let pp=0,qq=0; pp<img.data.length; pp+=3, qq+=4){ idata.data[qq]=img.data[pp]; idata.data[qq+1]=img.data[pp+1]; idata.data[qq+2]=img.data[pp+2]; idata.data[qq+3]=255; } }
+          else if(img.kind === 1){ const rowB=(img.width+7)>>3; for(let y=0;y<img.height;y++) for(let x=0;x<img.width;x++){ const bit=(img.data[y*rowB+(x>>3)]>>(7-(x&7)))&1; const qq=(y*img.width+x)*4; const v=bit?255:0; idata.data[qq]=idata.data[qq+1]=idata.data[qq+2]=v; idata.data[qq+3]=255; } }
+          else continue;
+          ctx.putImageData(idata,0,0);
+        } else continue;
+      } catch(e) { continue; }
+      if(cv.width < 24 || cv.height < 24) continue;
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      if(blob) out.push({blob, w: cv.width, h: cv.height});
+    }
+  } catch(e) { /* 枚举失败不拦主线 */ }
+  return out;
+}
+
 async function pdf2word(f){
   await ensureEngine(['pdfjs','worker','jszip']);
   prog(.1, '解析 PDF…');
@@ -330,36 +365,7 @@ async function pdf2word(f){
       if(prevY !== null && (prevY - ln.y) > 30 && pageData.paras.length && pageData.paras[pageData.paras.length-1] !== '') pageData.paras.push('');
       pageData.paras.push(text); prevY = ln.y;
     }
-    /* 插图枚举（15:08 站长拍板：混搭 PDF 插图回插）——位图图片是独立对象可拎出；文本框/形状是矢量绘图指令，拎不出 */
-    try {
-      const ops = await page.getOperatorList();
-      for(let k=0;k<ops.fnArray.length;k++){
-        const fn = ops.fnArray[k];
-        if(fn !== pdfjsLib.OPS.paintImageXObject && fn !== pdfjsLib.OPS.paintJpegXObject) continue;
-        const objId = ops.argsArray[k][0];
-        if(typeof objId !== 'string' || seenImgs.has(objId)) continue;
-        seenImgs.add(objId);
-        let img = null;
-        try { img = page.objs.get(objId); } catch(e){ try { img = page.commonObjs.get(objId); } catch(e2){ continue; } }
-        if(!img) continue;
-        const cv = document.createElement('canvas');
-        try {
-          if(img.bitmap){ cv.width = img.bitmap.width; cv.height = img.bitmap.height; cv.getContext('2d').drawImage(img.bitmap,0,0); }
-          else if(img.data && img.width && img.height){
-            cv.width = img.width; cv.height = img.height;
-            const ctx = cv.getContext('2d'); const idata = ctx.createImageData(img.width, img.height);
-            if(img.kind === 3) idata.data.set(img.data);
-            else if(img.kind === 2){ for(let pp=0,qq=0; pp<img.data.length; pp+=3, qq+=4){ idata.data[qq]=img.data[pp]; idata.data[qq+1]=img.data[pp+1]; idata.data[qq+2]=img.data[pp+2]; idata.data[qq+3]=255; } }
-            else if(img.kind === 1){ const rowB=(img.width+7)>>3; for(let y=0;y<img.height;y++) for(let x=0;x<img.width;x++){ const bit=(img.data[y*rowB+(x>>3)]>>(7-(x&7)))&1; const qq=(y*img.width+x)*4; const v=bit?255:0; idata.data[qq]=idata.data[qq+1]=idata.data[qq+2]=v; idata.data[qq+3]=255; } }
-            else continue;
-            ctx.putImageData(idata,0,0);
-          } else continue;
-        } catch(e) { continue; }
-        if(cv.width < 24 || cv.height < 24) continue; /* 极小装饰图跳过 */
-        const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
-        if(blob) pageData.images.push({blob, w: cv.width, h: cv.height});
-      }
-    } catch(e) { /* 图片枚举失败不拦文字 */ }
+    pageData.images.push(...await grabPageImages(page, seenImgs));
     pages.push(pageData);
   }
   /* 分流判据只看文字层（15:08 站长确认）：纯拍照件照走认字，不受插图回插影响 */
@@ -568,8 +574,10 @@ async function pdf2excel(f){
   prog(.1, '解析 PDF…');
   const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
   const aoa = [];
+  const pageImgs = []; const seenImgs = new Set();
   for(let i=1;i<=pdf.numPages;i++){
     prog(.1 + .6*i/pdf.numPages, `第 ${i}/${pdf.numPages} 页提取…`);
+    const pageStartRow = aoa.length;
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const lines = [];
@@ -596,8 +604,10 @@ async function pdf2excel(f){
         cur += p.s;
       }
       cells.push(cur.trim());
-      if(cells.some(c=>c)) aoa.push(cells);
+      if(cells.some(cc=>cc)) aoa.push(cells);
     }
+    const imgs = await grabPageImages(page, seenImgs);
+    for(const im of imgs) pageImgs.push({row: pageStartRow, ...im});
     if(i < pdf.numPages && aoa.length) aoa.push([`— 第 ${i+1} 页 —`]);
   }
   if(!aoa.length) return ocrExcel(f); /* 照片型 → 认字拼表兜底（13:58 站长拍板） */
@@ -606,8 +616,35 @@ async function pdf2excel(f){
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = Array.from({length: Math.max(...aoa.map(r=>r.length))}, () => ({wch: 22}));
   XLSX.utils.book_append_sheet(wb, ws, 'PDF提取');
-  const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  save(new Blob([out],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '表格数据已提取（文本型直提；若走认字版请校对）');
+  const raw = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  /* 位图插图回插（15:17 站长拍板与 Word 同款）：SheetJS 免费版不带图，手工注入 drawing 部件 */
+  if(pageImgs.length){
+    prog(.9, '插图回插…');
+    const zip = await JSZip.loadAsync(raw);
+    let n = 0; const drawParts = [], relItems = [];
+    for(const im of pageImgs){
+      n++;
+      const rid = 'rIdImg' + n;
+      zip.file(`xl/media/image${n}.png`, im.blob);
+      relItems.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${n}.png"/>`);
+      drawParts.push(`<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${im.row + n}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${Math.round(im.w*9525)}" cy="${Math.round(im.h*9525)}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${n}" name="Picture ${n}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`);
+    }
+    zip.file('xl/drawings/drawing1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' + drawParts.join('') + '</xdr:wsDr>');
+    zip.file('xl/drawings/_rels/drawing1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + relItems.join('') + '</Relationships>');
+    zip.file('xl/worksheets/_rels/sheet1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDr1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
+    let sheet = await zip.file('xl/worksheets/sheet1.xml').async('string');
+    if(!/xmlns:r=/.test(sheet.slice(0, 600))) sheet = sheet.replace('<worksheet ', '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+    sheet = sheet.replace('</worksheet>', '<drawing r:id="rIdDr1"/></worksheet>');
+    zip.file('xl/worksheets/sheet1.xml', sheet);
+    let ct = await zip.file('[Content_Types].xml').async('string');
+    if(!ct.includes('Extension="png"')) ct = ct.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>');
+    ct = ct.replace('</Types>', '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>');
+    zip.file('[Content_Types].xml', ct);
+    const blob2 = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    save(blob2, f.name.replace(/\.pdf$/i,'') + '.xlsx', `表格数据已提取，${n} 张插图已回插（文本型直提；认字版才需校对）`);
+  } else {
+    save(new Blob([raw],{type:'application/octet-stream'}), f.name.replace(/\.pdf$/i,'') + '.xlsx', '表格数据已提取（文本型直提；若走认字版请校对）');
+  }
 }
 </script>
 </body>
