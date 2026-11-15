@@ -23,8 +23,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:linear-gr
 .mode.on .mt{color:var(--gold)}
 .drop{margin-top:16px;background:var(--card);border:2px dashed var(--line);border-radius:15px;padding:34px 16px;text-align:center;cursor:pointer;transition:.15s}
 .drop:hover,.drop.over{border-color:var(--gold);background:rgba(232,188,79,.05)}
-.drop .di{font-size:34px}
-.drop .dt{font-size:15px;font-weight:700;margin-top:8px}
+.drop .dt{font-size:19px;font-weight:700}
 .drop .dd{font-size:12px;color:var(--sub);margin-top:5px;line-height:1.7}
 .opts{display:flex;gap:10px;margin-top:13px;flex-wrap:wrap;align-items:center}
 .opt{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:7px 15px;font-size:12.5px;cursor:pointer;transition:.15s}
@@ -63,9 +62,8 @@ input[type=file]{display:none}
   <div class="modes" id="modes"></div>
 
   <div class="drop" id="drop">
-    <div class="di" id="dropIcon">🖼</div>
-    <div class="dt" id="dropTitle">图片 → PDF</div>
-    <div class="dd" id="dropDesc">多张图片按顺序合成一个 PDF</div>
+    <div class="dt" id="dropTitle">点击去选择文件</div>
+    <div class="dd" id="dropDesc">PDF → Word · 提取文字生成 .docx</div>
     <input type="file" id="file">
   </div>
 
@@ -166,11 +164,10 @@ MODES.forEach(m => {
   d.onclick = () => { if(busy) return; mode = m.id;
     document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on')); d.classList.add('on');
     $('file').accept = m.accept; $('file').multiple = m.multi;
-    $('dropIcon').textContent = m.icon; $('dropTitle').textContent = m.title;
-    $('dropDesc').textContent = m.hint; reset(); };
+    $('dropDesc').textContent = m.title + ' · ' + m.hint; reset(); };
   modesEl.appendChild(d);
 });
-$('file').accept = MODES[0].accept; $('file').multiple = true;
+$('file').accept = MODES[0].accept; $('file').multiple = MODES[0].multi;
 
 /* ===== DPI 选项 ===== */
 document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
