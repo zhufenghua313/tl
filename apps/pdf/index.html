@@ -101,16 +101,16 @@ input[type=file]{display:none}
 
 <script>
 
-/* ===== 模式配置 ===== */
+/* ===== 模式配置（10:27 站长定序：上排 PDF 往外转，下排各家转成 PDF） ===== */
 const MODES = [
-  {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
+  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
+  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
   {id:'word2pdf', icon:'📝', title:'Word → PDF', desc:'.docx 转 PDF', accept:'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', multi:false, hint:'保留文字与基本排版，复杂样式会简化'},
   {id:'excel2pdf', icon:'📊', title:'Excel → PDF', desc:'.xlsx 转 PDF', accept:'.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', multi:false, hint:'每个工作表自动分页排版'},
-  {id:'pdf2word', icon:'📄', title:'PDF → Word', desc:'提取文字生成 .docx', accept:'application/pdf', multi:false, hint:'保得住文字内容，原排版会简化'},
-  {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
+  {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
 ];
-let mode = 'img2pdf', dpi = 150, busy = false;
+let mode = 'pdf2word', dpi = 150, busy = false;
 
 const $ = id => document.getElementById(id);
 
