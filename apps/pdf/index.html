@@ -113,14 +113,14 @@ const $ = id => document.getElementById(id);
 
 /* =====【09:58 修复】引擎懒加载：库不再挡按钮——选方向才下载、带进度、浏览器缓存二次秒过 ===== */
 const LIBS = {
-  pdfjs:  {src:'lib/pdf.min.js', g:'pdfjsLib', size:320*1024},
-  worker: {src:'lib/pdf.worker.min.js', g:null, size:1087*1024, blob:true},
-  pdflib: {src:'lib/pdf-lib.min.js', g:'PDFLib', size:525*1024},
-  mammoth:{src:'lib/mammoth.min.js', g:'mammoth', size:642*1024},
-  xlsx:   {src:'lib/xlsx.full.min.js', g:'XLSX', size:881*1024},
-  h2c:    {src:'lib/html2canvas.min.js', g:'html2canvas', size:198*1024},
-  jspdf:  {src:'lib/jspdf.umd.min.js', g:'jspdf', size:365*1024},
-  jszip:  {src:'lib/jszip.min.js', g:'JSZip', size:97*1024},
+  pdfjs:  {src:'/apps/pdf/lib/pdf.min.js', g:'pdfjsLib', size:320*1024},
+  worker: {src:'/apps/pdf/lib/pdf.worker.min.js', g:null, size:1087*1024, blob:true},
+  pdflib: {src:'/apps/pdf/lib/pdf-lib.min.js', g:'PDFLib', size:525*1024},
+  mammoth:{src:'/apps/pdf/lib/mammoth.min.js', g:'mammoth', size:642*1024},
+  xlsx:   {src:'/apps/pdf/lib/xlsx.full.min.js', g:'XLSX', size:881*1024},
+  h2c:    {src:'/apps/pdf/lib/html2canvas.min.js', g:'html2canvas', size:198*1024},
+  jspdf:  {src:'/apps/pdf/lib/jspdf.umd.min.js', g:'jspdf', size:365*1024},
+  jszip:  {src:'/apps/pdf/lib/jszip.min.js', g:'JSZip', size:97*1024},
 };
 const _loaded = {}; let _workerUrl = null;
 function loadLib(k){
