@@ -104,8 +104,6 @@ const MODES = [
   {id:'pdf2excel', icon:'📈', title:'PDF → Excel', desc:'提取表格生成 .xlsx', accept:'application/pdf', multi:false, hint:'规整表格效果好，乱版面会糊'},
   {id:'pdf2img', icon:'📷', title:'PDF → 图片', desc:'每页一张 JPG', accept:'application/pdf', multi:false, hint:'每页导出一张 JPG，多页自动打成 ZIP'},
   {id:'pdf2wordOcr', icon:'🔍', title:'扫描件 → Word', desc:'OCR 认字（扫描/拍照PDF）', accept:'application/pdf', multi:false, hint:'认字师傅上岗：印刷体约八九成准，模糊/手写会费劲；首次需下载认字模型约20MB'},
-  {id:'word2pdf', icon:'📝', title:'Word → PDF', desc:'.docx 转 PDF', accept:'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', multi:false, hint:'保留文字与基本排版，复杂样式会简化'},
-  {id:'excel2pdf', icon:'📊', title:'Excel → PDF', desc:'.xlsx 转 PDF', accept:'.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', multi:false, hint:'每个工作表自动分页排版'},
   {id:'img2pdf', icon:'🖼', title:'图片 → PDF', desc:'JPG/PNG 合成 PDF', accept:'image/jpeg,image/png,image/webp,image/bmp', multi:true, hint:'多张图片按顺序合成一个 PDF'},
 ];
 let mode = 'pdf2word', dpi = 150, busy = false;
@@ -119,10 +117,8 @@ const LIBS = {
   pdflib: {src:'/apps/pdf/lib/pdf-lib.min.js', g:'PDFLib', size:525*1024},
   xlsx:   {src:'/apps/pdf/lib/xlsx.full.min.js', g:'XLSX', size:881*1024},
   tessjs: {src:'/apps/pdf/lib/tess/tesseract.min.js', g:'Tesseract', size:67*1024},
-  h2c:    {src:'/apps/pdf/lib/html2canvas.min.js', g:'html2canvas', size:198*1024},
   jspdf:  {src:'/apps/pdf/lib/jspdf.umd.min.js', g:'jspdf', size:365*1024},
   jszip:  {src:'/apps/pdf/lib/jszip.min.js', g:'JSZip', size:97*1024},
-  docxpreview:{src:'/apps/pdf/lib/docx-preview.min.js', g:'docx', size:71*1024},
 };
 const _loaded = {}; let _workerUrl = null;
 function loadLib(k){
@@ -226,8 +222,6 @@ async function go(files){
   try{
     if(mode==='img2pdf') await img2pdf(files);
     else if(mode==='pdf2img') await pdf2img(f);
-    else if(mode==='word2pdf') await word2pdf(f);
-    else if(mode==='excel2pdf') await excel2pdf(f);
     else if(mode==='pdf2word') await pdf2word(f);
     else if(mode==='pdf2wordOcr') await pdf2wordOcr(f);
     else if(mode==='pdf2excel') await pdf2excel(f);
@@ -295,123 +289,7 @@ async function pdf2img(f){
   save(zblob, 'PDF转图片.zip', `${n} 页已打成 ZIP 压缩包`);
 }
 
-/* ===== 3. Word → PDF（13:20 保真重造：docx-preview 按原样式渲染本机浏览器→逐页截图定格，
-   字体/颜色/对齐/表格样式来自站长本机渲染，所见即所得；产物为照片型，转回走「扫描件→Word」） ===== */
-async function word2pdf(f){
-  await ensureEngine(['jszip','docxpreview','h2c','jspdf']);
-  prog(.15, '按原样式渲染 Word…');
-  const box = document.createElement('div');
-  box.style.cssText = 'position:absolute;left:-9999px;top:0;';
-  document.body.appendChild(box);
-  try {
-    await docx.renderAsync(await f.arrayBuffer(), box);
-    await new Promise(r => setTimeout(r, 300));
-    const pages = box.querySelectorAll('section.docx');
-    if(!pages.length) throw new Error('文档是空的');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({unit:'pt', format:'a4'});
-    for(let i = 0; i < pages.length; i++){
-      prog(.3 + .5*(i+1)/pages.length, `第 ${i+1}/${pages.length} 页…`);
-      const c = await html2canvas(pages[i], {scale:2, backgroundColor:'#fff'});
-      if(i > 0) pdf.addPage();
-      pdf.addImage(c.toDataURL('image/jpeg',.92), 'JPEG', 0, 0, 210, 297);
-    }
-    save(pdf.output('blob'), f.name.replace(/\.docx?$/i,'') + '.pdf', 'Word 已按原样式定格为 PDF');
-  } finally {
-    box.remove();
-  }
-}
-/* ===== 4. Excel → PDF（11:43 重构：合并单元格→colspan/rowspan、掐空壳列、尽量还原列宽、单Sheet不写表名） ===== */
-async function excel2pdf(f){
-  await ensureEngine(['xlsx','h2c','jspdf']);
-  prog(.15, '解析表格…');
-  const wb = XLSX.read(await f.arrayBuffer(), {type:'array'});
-  let html = '';
-  wb.SheetNames.forEach(sn => {
-    const ws = wb.Sheets[sn];
-    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
-    if(!aoa.length) return;
-    const maxc = Math.max(...aoa.map(r => r.length), 1);
-    /* 掐全空列：合并单元格拍扁后的空壳列、历史残留空列不再上桌 */
-    const alive = Array.from({length:maxc}, (_,c) => aoa.some(r => String(r[c] ?? '').trim() !== ''));
-    /* 列宽：!cols 里有像素宽就用（封顶240防怪宽），没有就交给浏览器自动分 */
-    const colDefs = ws['!cols'] || [];
-    const wpx = c => (colDefs[c] && colDefs[c].wpx ? Math.min(Math.round(colDefs[c].wpx), 240) : 0);
-    /* 合并单元格 → colspan/rowspan（!merges 左上格才有值，其余格跳过） */
-    const span = {}, cover = {};
-    (ws['!merges'] || []).forEach(m => {
-      let lc = 0; for(let c = m.s.c; c <= m.e.c; c++) if(alive[c]) lc++;
-      const lr = m.e.r - m.s.r + 1;
-      if(lc > 1 || lr > 1) span[m.s.r + ',' + m.s.c] = {c:lc, r:lr};
-      for(let r = m.s.r; r <= m.e.r; r++) for(let c = m.s.c; c <= m.e.c; c++)
-        if(!(r === m.s.r && c === m.s.c)) cover[r + ',' + c] = 1;
-    });
-    if(!alive.some(Boolean)) return;
-    if(wb.SheetNames.length > 1) html += `<h3>${esc(sn)}</h3>`;
-    html += '<table>';
-    aoa.forEach((row, r) => {
-      /* 掐全空行：Excel 里点过但没写字的行不再生成瘦条 */
-      if(row.every(c => String(c ?? '').trim() === '')) return;
-      let cells = '';
-      const w = Math.max(row.length, 1);
-      for(let c = 0; c < w; c++){
-        if(cover[r + ',' + c]) continue;
-        if(!alive[c] && !span[r + ',' + c]) continue;
-        const sp = span[r + ',' + c];
-        const v = row[c] ?? '';
-        const ws0 = (r === 0 && wpx(c)) ? ` style="width:${wpx(c)}px"` : '';
-        const tag = r === 0 ? 'th' : 'td';
-        cells += `<${tag}${ws0}>` + esc(v) + `</${tag}>`;
-        if(sp) cells = cells.slice(0, cells.lastIndexOf('<' + tag)) + `<${tag}${sp.c > 1 ? ` colspan="${sp.c}"` : ''}${sp.r > 1 ? ` rowspan="${sp.r}"` : ''}${ws0}>` + esc(v) + `</${tag}>`;
-      }
-      if(cells) html += '<tr>' + cells + '</tr>';
-    });
-    html += '</table>';
-  });
-  if(!html) throw new Error('表格是空的');
-  await htmlToPdf(html, f.name.replace(/\.(xlsx?|csv)$/i,'') + '.pdf', '表格内容已转 PDF（合并单元格与列宽已尽量还原）');
-}
-/* HTML → PDF 公用管道：隐藏容器渲染 → 截图 → 逐页切拼
-   11:50 病根实录：逐标签 replace 注入内联样式会让 html2canvas 克隆解析崩坏（表格乱铺），
-   改为 box 内嵌 <style> 统一注入，实证修复 */
-async function htmlToPdf(html, outName, hint){
-  prog(.4, '排版…');
-  const box = document.createElement('div');
-  box.id = 'pdfbox';
-  box.style.cssText = 'position:absolute;left:-9999px;top:0;width:700px;background:#fff;color:#222;font-family:"Microsoft YaHei",sans-serif;font-size:13px;line-height:1.75;padding:28px 30px;';
-  box.innerHTML = '<style>'
-    + '#pdfbox table{border-collapse:collapse;width:100%;margin:8px 0 16px}'
-    + '#pdfbox td,#pdfbox th{border:1px solid #bbb;padding:5px 7px;font-size:11.5px;word-break:break-all}'
-    + '#pdfbox h1{font-size:20px;margin:14px 0 10px}'
-    + '#pdfbox h2{font-size:17px;margin:12px 0 8px}'
-    + '#pdfbox h3{font-size:15px;margin:10px 0 7px}'
-    + '#pdfbox img{max-width:100%}'
-    + '#pdfbox p{margin:6px 0}'
-    + '</style>' + html;
-  document.body.appendChild(box);
-  await new Promise(r => setTimeout(r, 80));
-  const canvas = await html2canvas(box, {scale: 2, backgroundColor:'#fff'});
-  box.remove();
-  prog(.75, '合成 PDF…');
-  const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-  const pw = 210, margin = 8, usable = pw - margin*2;
-  const ph = 297, pageH = ph - margin*2;
-  /* 长图按 A4 可用高度切片逐页拼 */
-  const slicePx = Math.floor(canvas.width * pageH / usable);
-  const totalPages = Math.ceil(canvas.height / slicePx);
-  let y = 0, page = 0;
-  while(y < canvas.height){
-    const h = Math.min(slicePx, canvas.height - y);
-    const cv = document.createElement('canvas'); cv.width = canvas.width; cv.height = h;
-    cv.getContext('2d').drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-    if(page>0) pdf.addPage();
-    pdf.addImage(cv.toDataURL('image/jpeg',.92), 'JPEG', margin, margin, usable, h*usable/canvas.width);
-    y += h; page++;
-    prog(.75 + .2*Math.min(page,totalPages)/totalPages, `第 ${page} 页…`);
-  }
-  const blob = pdf.output('blob');
-  save(blob, outName, hint);
-}
+/* ===== 3/4 已裁撤（13:32 站长拍板）：Word/Excel→PDF 让位 Office 自带「另存为PDF」金标准；htmlToPdf 随管道退役 ===== */
 
 /* ===== 5. PDF → Word ===== */
 async function pdf2word(f){
