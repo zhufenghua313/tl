@@ -425,7 +425,10 @@ async function pdf2wordOcr(f){
   const n = pdf.numPages;
   if(n > 30) throw new Error('扫描件认字较慢，单次上限 30 页（当前 ' + n + ' 页），请分批转换');
   const worker = await Tesseract.createWorker('chi_sim', 1, {
-    workerPath: '/apps/pdf/lib/tess/worker.min.js',
+    /* 【11:04 修复】worker.min.js 抓内容打成 blob 直接喂给 new Worker（同 pdf.js 手法），
+       绕开 blob-worker 里 importScripts 走缓存的 MIME/旧响应坑；core/模型由 worker 内部 fetch，MIME 已正章 */
+    workerBlobURL: false,
+    workerPath: URL.createObjectURL(new Blob([await (await fetch('/apps/pdf/lib/tess/worker.min.js')).text()], {type:'text/javascript'})),
     corePath: '/apps/pdf/lib/tess/',
     langPath: '/apps/pdf/lib/tess/',
   });
