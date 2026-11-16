@@ -175,7 +175,8 @@ function boot(){$('setup').style.display='none';$('main-app').style.display='blo
 function loadRepos(){
  fetch('https://gh.efcc.cc/api/user/repos?per_page=100&sort=pushed&_t='+Date.now(),{headers:{'Authorization':'Bearer '+PAT,'Accept':'application/vnd.github+json'}})
  .then(r=>r.json()).then(list=>{
-  list.sort((a,b)=>a.name.localeCompare(b.name));
+  const RORDER=['33','tl','zh','tv','ck']; /* v46.1 站长定制：公仓打头 33-tl-zh，私仓殿后 tv-ck */
+  list.sort((a,b)=>{const ia=RORDER.indexOf(a.name),ib=RORDER.indexOf(b.name);return (ia<0?99:ia)-(ib<0?99:ib);});
   const sel=$('repoSel');sel.innerHTML='';
   list.forEach(r=>{const o=document.createElement("option");o.value=r.full_name;o.textContent=r.name+(r.private?"（私仓）":"（公仓）");if(r.full_name===REPO)o.selected=true;sel.appendChild(o)});
  }).catch(e=>{ $('repoSel').innerHTML='<option>'+REPO+'（清单加载失败,仅当前仓可用）</option>' })
