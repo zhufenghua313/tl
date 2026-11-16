@@ -83,12 +83,13 @@ body:not(.logged) .top{display:none}
 </head>
 <body>
 <div class="top">
-  <div><h1>🚀 欢乐GitHub管理平台</h1><div class="sub">zhufenghua313/zhufenghua313</div></div>
+  <div><h1>🚀 欢乐GitHub管理平台</h1><div class="sub" id="repo-sub">zhufenghua313/33</div></div>
   <div id="token-status">未登录</div>
 </div>
 <div class="wrap" id="main-app" style="display:none">
   <div class="breadcrumb" id="bc"></div>
   <div class="toolbar">
+    <select id="repoSel" class="btn" style="max-width:230px;padding:6px 8px" onchange="switchRepo(this.value)" title="切换仓库"><option>仓库清单加载中…</option></select>
     <button class="btn btn-p" onclick="newFile()">📄 新建文件</button>
     <button class="btn btn-p" onclick="newFolder()">📁 新建文件夹</button>
     <button class="btn btn-p" onclick="pickFile()">📤 上传文件</button>
@@ -129,7 +130,7 @@ body:not(.logged) .top{display:none}
   <input type="password" id="pat-input" name="github_pat" autocomplete="section-github current-password" placeholder="github_pat_……（粘贴到这里）">
   <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#888;margin:8px 0 2px;cursor:pointer"><input type="checkbox" id="rpChk" style="width:14px;height:14px;margin:0;flex-shrink:0;cursor:pointer"> 记住令牌（本机·下次自动填好，直接点登录）</label>
   <button class="btn btn-p" onclick="doLogin()">登 录</button>
-  <p style="font-size:12.5px;margin-top:10px"><a href="/tool/__auth/token-mail" style="color:#2563eb">忘记令牌？发到我的邮箱</a><br><span style="color:#888;font-size:11.5px">（v44：登录成功会自动云端备份令牌，忘记时邮件调出）</span></p>
+  <p style="font-size:12.5px;margin-top:10px"><a href="/tool/__auth/token-mail" style="color:#2563eb">忘记令牌？发到我的邮箱</a><br><span style="color:#888;font-size:11.5px">（v46：新增仓库下拉框·全部仓库随便切；登录成功会自动云端备份令牌，忘记时邮件调出）</span></p>
   <p style="margin-top:14px"><a href="/" style="color:rgba(255,255,255,.55);font-size:14px;text-decoration:none">← 返回欢乐工具站</a></p>
 </div>
 <div class="msg" id="msg"></div>
@@ -139,9 +140,9 @@ body:not(.logged) .top{display:none}
   <button class="btn btn-p" id="dlg-ok">确定</button></div>
 </div></div>
 <script>
-const REPO='zhufenghua313/zhufenghua313';
+let REPO='zhufenghua313/33'; /* v46: 由仓库下拉框切换 */
 // 走 gh.efcc.cc 高速通道转发 api.github.com（国内直连API不通，2026-11-03实测）
-const GHAPI='https://gh.efcc.cc/api/repos/'+REPO;
+let GHAPI='https://gh.efcc.cc/api/repos/'+REPO;
 let PAT='', curPath='', curSha={}, editing=null;
 const $=id=>document.getElementById(id);
 function LSget(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -168,7 +169,24 @@ function doLogin(){PAT=$('pat-input').value.trim();if(!PAT.startsWith('github_pa
 function logoutAsk(){ /* v39: 一键直退（站长原则：退出要快，登录才要保险） */
  LSdel('tv-admin-pat');location.hash='';location.reload()}
 function logout(){LSdel('tv-admin-pat');location.reload()}
-function boot(){$('setup').style.display='none';$('main-app').style.display='block';$('token-status').textContent='✅ 已登录';document.body.classList.add('logged')} /* v45:登录态切浅色工具主题 */
+function boot(){$('setup').style.display='none';$('main-app').style.display='block';$('token-status').textContent='✅ 已登录';document.body.classList.add('logged');loadRepos()} /* v46:登录后拉仓库清单填下拉框 */
+
+/* v46: 仓库下拉框——列全部仓库（私仓/公仓标注），切仓即换门牌 */
+function loadRepos(){
+ fetch('https://gh.efcc.cc/api/user/repos?per_page=100&sort=pushed&_t='+Date.now(),{headers:{'Authorization':'Bearer '+PAT,'Accept':'application/vnd.github+json'}})
+ .then(r=>r.json()).then(list=>{
+  list.sort((a,b)=>a.name.localeCompare(b.name));
+  const sel=$('repoSel');sel.innerHTML='';
+  list.forEach(r=>{const o=document.createElement("option");o.value=r.full_name;o.textContent=r.name+(r.private?"（私仓）":"（公仓）");if(r.full_name===REPO)o.selected=true;sel.appendChild(o)});
+ }).catch(e=>{ $('repoSel').innerHTML='<option>'+REPO+'（清单加载失败,仅当前仓可用）</option>' })
+}
+function switchRepo(name){
+ if(name===REPO)return;
+ REPO=name;GHAPI='https://gh.efcc.cc/api/repos/'+REPO;
+ $('repo-sub').textContent=REPO;
+ curPath='';curSha={};closeEditor();
+ loadDir('');
+}
 
 /* 目录浏览 */
 function loadDir(path){curPath=path;closeEditor();
@@ -196,7 +214,7 @@ function fmtTime(iso){if(!iso)return'';const d=new Date(iso);
  const p=n=>String(n).padStart(2,'0');
  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())}
 function loadTimes(path,items){
- const base='https://gh.efcc.cc/api/repos/zhufenghua313/zhufenghua313/commits';
+ const base='https://gh.efcc.cc/api/repos/'+REPO+'/commits';
  /* v27: 修行偏移——内层目录首行是"返回上级"占位致按索引找行全部错位。改按名字找行 */
  const rowOf=nm=>[...document.querySelectorAll('#flist .item')].find(r=>{const n=r.querySelector('.nm');return n&&n.textContent===nm});
  if(items.some(x=>x.type==='dir')){
@@ -330,7 +348,7 @@ function downloadDir(fp){toast('⏳ 正在打包下载 '+fp+'（ZIP）…','i');
     return}
    const f=files[done++];
    const rel=f.path.slice(fp.length+1);   /* zip内用相对路径 */
-   fetch('https://gh.efcc.cc/api/repos/zhufenghua313/zhufenghua313/contents/'+encodeURIComponent(f.path).replace(/%2F/g,'/')+'?t='+Date.now(),
+   fetch('https://gh.efcc.cc/api/repos/'+REPO+'/contents/'+encodeURIComponent(f.path).replace(/%2F/g,'/')+'?t='+Date.now(),
     {headers:{'Authorization':'Bearer '+PAT,'Accept':'application/vnd.github+json'}})
     .then(r=>r.json()).then(c=>{
      if(c.content){
@@ -420,7 +438,7 @@ function batchDownload(){const p=picked();if(!p.length)return;
    toast('✅ 已下载批量ZIP（'+p.length+'项）')}))
  }).catch(e=>toast('打包失败：'+e.message,'e'))}
 function zipAdd(zip,rel,zipPath,fullPath){ /* v33: 4参修正——rel=顶层名, zipPath=zip内路径（保持原目录结构）, fullPath=git真实路径 */
- return fetch('https://gh.efcc.cc/api/repos/zhufenghua313/zhufenghua313/contents/'+encodeURIComponent(fullPath).replace(/%2F/g,'/')+'?t='+Date.now(),
+ return fetch('https://gh.efcc.cc/api/repos/'+REPO+'/contents/'+encodeURIComponent(fullPath).replace(/%2F/g,'/')+'?t='+Date.now(),
   {headers:{'Authorization':'Bearer '+PAT,'Accept':'application/vnd.github+json'}})
   .then(r=>r.json()).then(c=>{
    if(c.content){const bin=atob(c.content.replace(/\n/g,''));
