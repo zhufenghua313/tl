@@ -106,7 +106,7 @@ body:not(.logged) .top{display:none}
     <button class="btn btn-w" onclick="loadDir(curPath)">🔄 刷新</button>
     <button class="btn btn-w own-only" onclick="logoutAsk()">🚪 退出登录</button>
     <button class="btn btn-w guest-only" onclick="listGuestRepos()" style="display:none">📁 浏览此账户的所有仓库</button>
-    <button class="btn btn-w guest-only" onclick="location.reload()" style="display:none">🚪 退出当前github账户</button>
+    <button class="btn btn-w guest-only" onclick="guestExit()" style="display:none">🚪 退出当前github账户</button>
   </div>
   <div class="batchbar" id="batchbar">
     <b id="batch-count">已选 0 项</b>
@@ -247,10 +247,12 @@ function listGuestRepos(){const owner=REPO.split('/')[0];
    pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 此github账户的公开仓库列表如下，请选择要进入的仓库')})
   .catch(e=>toast('打不开：'+e.message,'e'))}
 function openGuest(repo,keepPath){REPO=repo;
+ toast('⏳ 正在打开 '+repo+'，链路慢请稍等…','i');
  return gh('/contents/').then(()=>{boot();loadDir(keepPath||'');try{sessionStorage.setItem('gh-keep',JSON.stringify({g:1,r:repo}))}catch(e){}
   toast('👀 访客模式：只浏览不编辑；要管理请登录自己的令牌','i')})
  .catch(e=>{const m=String(e.message||'');
   throw new Error(m.includes('rate limit')?'现在用的人有点多，GitHub 限流了——过一小时再来，或登录令牌（限额高 80 倍）':'打不开：'+m+'（仓库不存在，或是私有仓库）')})}
+function guestExit(){try{sessionStorage.removeItem('gh-keep')}catch(e){}location.replace(location.pathname)}
 function logoutAsk(){LSdel('gh-pub-pat');try{sessionStorage.removeItem('gh-keep')}catch(e){}location.replace(location.pathname)}
 function logout(){LSdel('gh-pub-pat');try{sessionStorage.removeItem('gh-keep')}catch(e){}location.replace(location.pathname)}
 function boot(){$('setup').style.display='none';$('main-app').style.display='block';
