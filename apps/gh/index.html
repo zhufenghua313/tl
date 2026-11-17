@@ -105,7 +105,8 @@ body:not(.logged) .top{display:none}
     <button class="btn btn-p own-only" onclick="pickFile()">📤 上传文件</button>
     <button class="btn btn-w" onclick="loadDir(curPath)">🔄 刷新</button>
     <button class="btn btn-w own-only" onclick="logoutAsk()">🚪 退出登录</button>
-    <button class="btn btn-w guest-only" onclick="location.reload()" style="display:none">🚪 退出改github账户</button>
+    <button class="btn btn-w guest-only" onclick="listGuestRepos()" style="display:none">📁 浏览此账户的所有仓库</button>
+    <button class="btn btn-w guest-only" onclick="location.reload()" style="display:none">🚪 退出当前github账户</button>
   </div>
   <div class="batchbar" id="batchbar">
     <b id="batch-count">已选 0 项</b>
@@ -235,6 +236,13 @@ function doGuest(){const v=$('repo-input').value.trim().replace(/^https?:\/\/git
     pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 这个人的公开仓库，挑一个：')})
    .catch(e2=>toast('打不开：'+e2.message,'e'))});
 }
+function listGuestRepos(){const owner=REPO.split('/')[0];
+ fetch('https://gh.efcc.cc/api/users/'+owner+'/repos?per_page=100&sort=updated')
+  .then(async r=>{if(!r.ok)throw new Error(r.status===404?'查无此人（用户名拼错了？）':'拉仓库列表失败（HTTP '+r.status+'）');return r.json()})
+  .then(list=>{const names=(list||[]).map(x=>x.full_name);
+   if(!names.length)return toast('「'+owner+'」名下没有公开仓库','e');
+   pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 '+owner+' 的公开仓库，挑一个：')})
+  .catch(e=>toast('打不开：'+e.message,'e'))}
 function openGuest(repo){REPO=repo;
  return gh('/contents/').then(()=>{boot();loadDir('');toast('👀 访客模式：只浏览不编辑；要管理请登录自己的令牌','i')})
  .catch(e=>{const m=String(e.message||'');
@@ -247,7 +255,7 @@ function boot(){$('setup').style.display='none';$('main-app').style.display='blo
  document.body.classList.add('logged');
  if(isGuest){document.body.classList.add('guest-mode');
   document.querySelectorAll('.own-only').forEach(b=>b.style.display='none');
-  const g=document.querySelector('.guest-only');if(g)g.style.display='';
+  document.querySelectorAll('.guest-only').forEach(g=>g.style.display='');
   /* 访客隐藏"上传提示"那行 */
   const tips=[...document.querySelectorAll('.wrap > div')].find(d=>d.textContent.includes('拖进本窗口'));
   if(tips)tips.style.display='none'}}
