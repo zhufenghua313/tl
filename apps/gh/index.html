@@ -152,7 +152,7 @@ body:not(.logged) .top{display:none}
   <div class="owner-toggle" onclick="toggleOwnerPanel()">🔑 输入令牌管理自己的仓库 ▾</div>
   <div id="owner-panel" style="display:none">
     <p style="margin:0 0 8px">令牌只存<b>你自己</b>的浏览器，我们不经手、不保存。<a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#fbbf24">没有令牌？点这生成</a></p>
-    <input type="password" id="pat-input" name="github_pat" autocomplete="section-github current-password" placeholder="github_pat_……（粘贴到这里）">
+    <input type="password" id="pat-input" name="github_pat" autocomplete="section-github new-password" placeholder="github_pat_……（粘贴到这里）">
     <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#cbd5e1;margin:8px 0 2px;cursor:pointer"><input type="checkbox" id="rpChk" style="width:14px;height:14px;margin:0;flex-shrink:0;cursor:pointer"> 记住令牌（本机·下次自动填好，直接点登录）</label>
     <button class="btn btn-p" onclick="doLogin()">登 录</button>
   </div>
