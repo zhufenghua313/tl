@@ -76,18 +76,46 @@
     </form>
   </div>
 
-<div class="card">
-    <h2>🔑 修改进入密码（运动会 + 程序制作平台）</h2>
-    <p class="desc">这一把钥匙同时管三处：<b>程序制作平台</b>、<b>本后台</b>、<b>运动会总管理员</b>（运动会登录页"管理员"页签，只填进入密码的那个）。改完所有设备需用新密码重新登录（旧通行证自动作废）。</p>
-    <form id="pwForm">
+  <div class="card">
+    <h2>🔑 修改程序制作平台的密码</h2>
+    <p class="desc">管 <b>程序制作平台</b>（/apps/platform）的进入密码。三门已拆分——改这里只动平台的门，工具站后台和运动会都不受影响。</p>
+    <form id="pfFormPlatform">
       <label>新密码（至少6位，建议拼音词组+数字）</label>
-      <input type="password" id="newpw" minlength="6" required autocomplete="new-password">
+      <input type="password" id="npPlatform" minlength="6" required autocomplete="new-password">
       <label>确认新密码（再输一遍）</label>
-      <input type="password" id="newpw2" minlength="6" required autocomplete="new-password">
-      <button class="btn-gold" type="submit">一键修改密码</button>
-      <div class="msg" id="pwMsg"></div>
+      <input type="password" id="npPlatform2" minlength="6" required autocomplete="new-password">
+      <button class="btn-gold" type="submit">一键修改平台密码</button>
+      <div class="msg" id="pmPlatform"></div>
     </form>
-    <p class="hint">💡 双保险：忘了这把密码，可在任一登录页点"忘记密码？用邮箱重置"（运动会登录页在「管理员」页签内）——邮箱验证后即可设置新密码。</p>
+    <p class="hint">💡 忘了这把密码：在平台登录页点"忘记密码？用邮箱重置"，邮件发到站长邮箱，点链接即可设新密码。</p>
+  </div>
+
+  <div class="card">
+    <h2>🔑 修改运动会管理员密码</h2>
+    <p class="desc">管 <b>运动会登录页「管理员」页签</b>的进入密码（总管理员用）。班主任、录入员的账号密码各自独立，不受这里影响。</p>
+    <form id="pfFormSports">
+      <label>新密码（至少6位，建议拼音词组+数字）</label>
+      <input type="password" id="npSports" minlength="6" required autocomplete="new-password">
+      <label>确认新密码（再输一遍）</label>
+      <input type="password" id="npSports2" minlength="6" required autocomplete="new-password">
+      <button class="btn-gold" type="submit">一键修改运动会密码</button>
+      <div class="msg" id="pmSports"></div>
+    </form>
+    <p class="hint">💡 忘了这把密码：在运动会登录页「管理员」页签点"忘记密码？用邮箱重置"，邮件发到站长邮箱。</p>
+  </div>
+
+  <div class="card">
+    <h2>🔑 修改工具站后台密码（本页的门）</h2>
+    <p class="desc">管 <b>本后台页面本身</b>的进入密码。⚠️ 改完本页会立即要求用新密码重新登录——请记牢再改。</p>
+    <form id="pfFormStation">
+      <label>新密码（至少6位，建议拼音词组+数字）</label>
+      <input type="password" id="npStation" minlength="6" required autocomplete="new-password">
+      <label>确认新密码（再输一遍）</label>
+      <input type="password" id="npStation2" minlength="6" required autocomplete="new-password">
+      <button class="btn-gold" type="submit">一键修改本页密码</button>
+      <div class="msg" id="pmStation"></div>
+    </form>
+    <p class="hint">💡 这是本页自己的钥匙——忘了请找站长恢复。另两扇门可用各自的"邮箱重置"自助找回。</p>
   </div>
 
   <a class="back" href="/">← 返回欢乐工具站首页</a>
@@ -103,19 +131,24 @@ function addRow(text, href){
     '<button type="button" class="del" onclick="this.parentNode.remove()">删</button>';
   el("navRows").appendChild(d);
 }
-el("pwForm").addEventListener("submit",function(e){
-  e.preventDefault();
-  var m=el("pwMsg");
-  if(el("newpw").value!==el("newpw2").value){ m.className="msg err"; m.textContent="两次输入的新密码不一致"; return; }
-  var fd=new FormData(); fd.append("new",el("newpw").value);
-  fetch("/soft/__admin/set-password",{method:"POST",body:fd})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      m.className="msg "+(d.ok?"ok":"err"); m.textContent=d.msg||"";
-      if(d.ok){ el("pwForm").reset(); }
-    })
-    .catch(function(){ m.className="msg err"; m.textContent="网络异常，稍后再试"; });
-});
+function bindPw(fid,i1,i2,mid,door){
+  el(fid).addEventListener("submit",function(e){
+    e.preventDefault();
+    var m=el(mid);
+    if(el(i1).value!==el(i2).value){ m.className="msg err"; m.textContent="两次输入的新密码不一致"; return; }
+    var fd=new FormData(); fd.append("new",el(i1).value); fd.append("door",door);
+    fetch("/soft/__admin/set-password",{method:"POST",body:fd})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        m.className="msg "+(d.ok?"ok":"err"); m.textContent=d.msg||"";
+        if(d.ok){ el(fid).reset(); }
+      })
+      .catch(function(){ m.className="msg err"; m.textContent="网络异常，稍后再试"; });
+  });
+}
+bindPw("pfFormPlatform","npPlatform","npPlatform2","pmPlatform","platform");
+bindPw("pfFormSports","npSports","npSports2","pmSports","sports");
+bindPw("pfFormStation","npStation","npStation2","pmStation","station");
 function saveNav(){
   var rows=document.querySelectorAll(".nav-row"), nav=[], m=el("navMsg");
   for(var i=0;i<rows.length;i++){
