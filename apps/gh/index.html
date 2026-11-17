@@ -212,6 +212,7 @@ function doLogin(){PAT=$('pat-input').value.trim();if(!PAT.startsWith('github_pa
 function enterRepo(repo){REPO=repo;isGuest=false;
  var rp=(document.getElementById('rpChk')||{}).checked;
  if(rp)LSset('gh-pub-pat',PAT);else LSdel('gh-pub-pat');
+ try{sessionStorage.setItem('gh-keep',JSON.stringify({p:PAT,r:repo}))}catch(e){}
  boot();const sv=decodeURIComponent(location.hash.slice(1));loadDir(sv||'');startIdleGuard()}
 function pickRepoDlg(names,cb,title){const m=$('dlg-mask');$('dlg-title').textContent=title||'📁 你的仓库，挑一个：';
  const old=$('dlg-input');let sel=old;
@@ -243,12 +244,13 @@ function listGuestRepos(){const owner=REPO.split('/')[0];
    if(!names.length)return toast('「'+owner+'」名下没有公开仓库','e');
    pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 此github账户的公开仓库列表如下，请选择要进入的仓库')})
   .catch(e=>toast('打不开：'+e.message,'e'))}
-function openGuest(repo){REPO=repo;
- return gh('/contents/').then(()=>{boot();loadDir('');toast('👀 访客模式：只浏览不编辑；要管理请登录自己的令牌','i')})
+function openGuest(repo,keepPath){REPO=repo;
+ return gh('/contents/').then(()=>{boot();loadDir(keepPath||'');try{sessionStorage.setItem('gh-keep',JSON.stringify({g:1,r:repo}))}catch(e){}
+  toast('👀 访客模式：只浏览不编辑；要管理请登录自己的令牌','i')})
  .catch(e=>{const m=String(e.message||'');
   throw new Error(m.includes('rate limit')?'现在用的人有点多，GitHub 限流了——过一小时再来，或登录令牌（限额高 80 倍）':'打不开：'+m+'（仓库不存在，或是私有仓库）')})}
-function logoutAsk(){LSdel('gh-pub-pat');location.hash='';location.reload()}
-function logout(){LSdel('gh-pub-pat');location.reload()}
+function logoutAsk(){LSdel('gh-pub-pat');try{sessionStorage.removeItem('gh-keep')}catch(e){}location.replace(location.pathname)}
+function logout(){LSdel('gh-pub-pat');try{sessionStorage.removeItem('gh-keep')}catch(e){}location.replace(location.pathname)}
 function boot(){$('setup').style.display='none';$('main-app').style.display='block';
  $('token-status').textContent=isGuest?'👀 访客浏览':'✅ 已登录';
  $('repo-sub').textContent=REPO;
@@ -639,12 +641,24 @@ function deleteAsk(fp,sha){const parts=fp.split('/');const dir=parts.slice(0,-1)
 PAT=LSget('gh-pub-pat')||'';
 if(PAT){$('pat-input').value=PAT;if(document.getElementById('rpChk'))document.getElementById('rpChk').checked=true;
  const ri=$('repo-input');if(ri)ri.focus();}
+/* 刷新保活（2026-11-17 站长需求）：会话存本标签页 sessionStorage——刷新不掉线，关标签页自动失效；
+   跨次访问仍只填框不自动登录（2026-11-04 安全铁律不变） */
+(function(){try{
+ const keep=JSON.parse(sessionStorage.getItem('gh-keep')||'null');
+ if(!keep||!keep.r)return;
+ const sv=decodeURIComponent(location.hash.slice(1));
+ if(keep.g){openGuest(keep.r,sv||'').catch(()=>{try{sessionStorage.removeItem('gh-keep')}catch(e){}});return}
+ if(keep.p&&String(keep.p).indexOf('github_pat_')===0){
+  fetch('https://gh.efcc.cc/api/user',{headers:{'Authorization':'Bearer '+keep.p}})
+   .then(async u=>{if(!u.ok)throw new Error('令牌失效');PAT=keep.p;enterRepo(keep.r)})
+   .catch(()=>{try{sessionStorage.removeItem('gh-keep')}catch(e){}})}
+}catch(e){}})();
 /* v36: 会话保护——30分钟无操作自动退出（防忘关下班），登录成功后启用 */
 function startIdleGuard(){(function(){
  const IDLE_MS=30*60*1000;
  let last=Date.now();
  ['click','keydown','mousemove','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{last=Date.now()},{passive:true}));
- setInterval(()=>{if(Date.now()-last>IDLE_MS){LSdel('gh-pub-pat');toast('⏰ 30分钟没操作，已自动退出（保护模式）','i');setTimeout(()=>location.reload(),1500)}},60000);
+ setInterval(()=>{if(Date.now()-last>IDLE_MS){LSdel('gh-pub-pat');try{sessionStorage.removeItem('gh-keep')}catch(e){}toast('⏰ 30分钟没操作，已自动退出（保护模式）','i');setTimeout(()=>location.replace(location.pathname),1500)}},60000);
 })();}
 </script>
 <script>
