@@ -193,9 +193,12 @@ function saveAbout(){
     .catch(function(){ m.className="msg err"; m.textContent="网络异常，稍后再试"; });
 }
 function doLogout(){
+  /* v4.33b：退出回本页真身路径（/apps/station-admin/index.html）——
+     Worker见未登录会吐本门的登录页，next=本页，重登直达后台。
+     旧写法跳/soft/station-admin.html是残留的错地址，登录后会落空 */
   fetch("/soft/__auth/logout",{method:"POST"}).then(function(){
-    location.replace("/soft/station-admin.html?loggedout=1");
-  }).catch(function(){ location.replace("/soft/station-admin.html?loggedout=1"); });
+    location.replace(location.pathname+"?loggedout=1");
+  }).catch(function(){ location.replace(location.pathname+"?loggedout=1"); });
 }
 
 /* =====【v5.0】会话守护（站长 11-08 全站登录规则统一）=====
