@@ -233,7 +233,7 @@ function doGuest(){const v=$('repo-input').value.trim().replace(/^https?:\/\/git
    .then(async r=>{if(!r.ok)throw new Error(r.status===404?'查无此人（用户名拼错了？）':'拉仓库列表失败（HTTP '+r.status+'）');return r.json()})
    .then(list=>{const names=(list||[]).map(x=>x.full_name);
     if(!names.length)throw new Error('「'+v+'」名下没有公开仓库');
-    pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 这个人的公开仓库，挑一个：')})
+    pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 此github账户的公开仓库列表如下，请选择要进入的仓库')})
    .catch(e2=>toast('打不开：'+e2.message,'e'))});
 }
 function listGuestRepos(){const owner=REPO.split('/')[0];
@@ -241,7 +241,7 @@ function listGuestRepos(){const owner=REPO.split('/')[0];
   .then(async r=>{if(!r.ok)throw new Error(r.status===404?'查无此人（用户名拼错了？）':'拉仓库列表失败（HTTP '+r.status+'）');return r.json()})
   .then(list=>{const names=(list||[]).map(x=>x.full_name);
    if(!names.length)return toast('「'+owner+'」名下没有公开仓库','e');
-   pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 '+owner+' 的公开仓库，挑一个：')})
+   pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 此github账户的公开仓库列表如下，请选择要进入的仓库')})
   .catch(e=>toast('打不开：'+e.message,'e'))}
 function openGuest(repo){REPO=repo;
  return gh('/contents/').then(()=>{boot();loadDir('');toast('👀 访客模式：只浏览不编辑；要管理请登录自己的令牌','i')})
