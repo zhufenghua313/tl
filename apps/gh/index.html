@@ -104,7 +104,7 @@ body:not(.logged) .top{display:none}
     <button class="btn btn-p own-only" onclick="newFolder()">📁 新建文件夹</button>
     <button class="btn btn-p own-only" onclick="pickFile()">📤 上传文件</button>
     <button class="btn btn-w" onclick="loadDir(curPath)">🔄 刷新</button>
-    <button class="btn btn-w own-only" onclick="switchRepo()">🔀 切换其他仓库</button>
+    <button class="btn btn-w own-only" onclick="switchRepo()">📁 浏览我的所有仓库</button>
     <button class="btn btn-w own-only" onclick="logoutAsk()">🚪 退出登录</button>
     <button class="btn btn-w guest-only" onclick="listGuestRepos()" style="display:none">📁 浏览此账户的所有仓库</button>
     <button class="btn btn-w guest-only" onclick="guestExit()" style="display:none">🚪 退出当前github账户</button>
@@ -169,7 +169,7 @@ try{if(sessionStorage.getItem('gh-keep')){var _s=document.getElementById('setup'
 </div></div>
 <script>
 /* 公众版 v1（2026-11-12）：由站长私人版改造，人人可用
-   v1.6（2026-11-18）：登录模式工具栏加"🔀 切换其他仓库"按钮——
+   v1.6（2026-11-18）：登录模式工具栏加"📁 浏览我的所有仓库"按钮——
    病根：v1.5 只在进门时挑一次仓库，进门后没有任何换仓入口，
    站长登进 33 仓库后想回别的仓库只能退出重登
    - 访客模式：输入 用户名/仓库 即可高速浏览任何公开仓库
