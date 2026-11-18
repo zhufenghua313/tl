@@ -32,7 +32,10 @@
   .nav-row input{padding:9px 11px;font-size:13.5px;}
   .del{background:none;border:1px solid var(--line);border-radius:7px;color:var(--err);cursor:pointer;padding:8px 10px;font-size:13px;}
   .hint{font-size:12.5px;color:var(--sub);margin-top:10px;line-height:1.7;background:var(--bg);border-radius:8px;padding:10px 12px;}
-  .back{display:inline-block;margin-top:8px;color:var(--sub);font-size:13px;text-decoration:none;}
+  .back{display:inline-block;color:var(--sub);font-size:13px;text-decoration:none;}
+  .foot-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .btn-out-l{padding:6px 12px;background:#fff;border:1px solid var(--line);color:var(--err);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;line-height:1.4;}
+  .btn-out-l:active{background:var(--bg);}
   footer{text-align:center;font-size:12.5px;color:var(--sub);margin-top:8px;line-height:1.8;}
 </style>
 </head>
@@ -43,7 +46,10 @@
       <h1>🛠️ 欢乐工具站 · 后台</h1>
       <p>改密码、改首页导航按钮——都在这，一键生效</p>
     </div>
-    <button class="btn-out" type="button" onclick="doLogout()">🚪 退出登录</button>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <a class="btn-out" href="/" style="text-decoration:none">← 返回欢乐工具站首页</a>
+      <button class="btn-out" type="button" onclick="doLogout()">🚪 退出登录</button>
+    </div>
   </header>
 
   <div class="card">
@@ -118,7 +124,10 @@
     <p class="hint">💡 这是本页自己的钥匙——忘了请找站长恢复。另两扇门可用各自的"邮箱重置"自助找回。</p>
   </div>
 
-  <a class="back" href="/">← 返回欢乐工具站首页</a>
+  <div class="foot-row">
+    <a class="back" href="/">← 返回欢乐工具站首页</a>
+    <button class="btn-out-l" type="button" onclick="doLogout()">🚪 退出登录</button>
+  </div>
   <footer>tl.efcc.cc 后台 · 配置存于 Cloudflare KV（tv-config）<br>密码永不写进网页或文档——安全第一</footer>
 </div>
 
