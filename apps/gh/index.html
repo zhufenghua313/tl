@@ -104,6 +104,7 @@ body:not(.logged) .top{display:none}
     <button class="btn btn-p own-only" onclick="newFolder()">📁 新建文件夹</button>
     <button class="btn btn-p own-only" onclick="pickFile()">📤 上传文件</button>
     <button class="btn btn-w" onclick="loadDir(curPath)">🔄 刷新</button>
+    <button class="btn btn-w own-only" onclick="switchRepo()">🔀 切换其他仓库</button>
     <button class="btn btn-w own-only" onclick="logoutAsk()">🚪 退出登录</button>
     <button class="btn btn-w guest-only" onclick="listGuestRepos()" style="display:none">📁 浏览此账户的所有仓库</button>
     <button class="btn btn-w guest-only" onclick="guestExit()" style="display:none">🚪 退出当前github账户</button>
@@ -168,6 +169,9 @@ try{if(sessionStorage.getItem('gh-keep')){var _s=document.getElementById('setup'
 </div></div>
 <script>
 /* 公众版 v1（2026-11-12）：由站长私人版改造，人人可用
+   v1.6（2026-11-18）：登录模式工具栏加"🔀 切换其他仓库"按钮——
+   病根：v1.5 只在进门时挑一次仓库，进门后没有任何换仓入口，
+   站长登进 33 仓库后想回别的仓库只能退出重登
    - 访客模式：输入 用户名/仓库 即可高速浏览任何公开仓库
    - 车主模式：粘贴自己的 GitHub 令牌，管理自己的文件（增删改上传下载全都有）
    令牌只存自己浏览器，不经我们服务器存储。 */
@@ -246,6 +250,16 @@ function listGuestRepos(){const owner=REPO.split('/')[0];
    if(!names.length)return toast('「'+owner+'」名下没有公开仓库','e');
    pickRepoDlg(names,n=>openGuest(n).catch(e2=>toast(e2.message,'e')),'📁 此github账户的公开仓库列表如下，请选择要进入的仓库')})
   .catch(e=>toast('打不开：'+e.message,'e'))}
+/* 登录模式切换仓库（2026-11-18 站长提出）：进门后也能换仓——
+   拉令牌名下全部仓库（私仓排前），弹出挑选，选中即整体切换 */
+function switchRepo(){const H={'Authorization':'Bearer '+PAT,'Accept':'application/vnd.github+json'};
+ fetch('https://gh.efcc.cc/api/user/repos?per_page=100&sort=updated',{headers:H})
+ .then(async r=>{if(!r.ok)throw new Error('拉仓库列表失败（HTTP '+r.status+'）');return r.json()})
+ .then(list=>{list=(list||[]).slice().sort((a,b)=>(b.private?1:0)-(a.private?1:0)||String(b.updated_at).localeCompare(String(a.updated_at)));
+  const names=list.map(x=>x.full_name);
+  if(!names.length)return toast('令牌名下没有可用仓库（去 GitHub 检查令牌的仓库授权范围）','e');
+  pickRepoDlg(names,n=>enterRepo(n),'📁 你的仓库，挑一个：')})
+ .catch(e=>toast('切换失败：'+e.message,'e'))}
 function openGuest(repo,keepPath){REPO=repo;
  toast('⏳ 正在打开 '+repo+'，链路慢请稍等…','i');
  return gh('/contents/').then(()=>{boot();loadDir(keepPath||'');try{sessionStorage.setItem('gh-keep',JSON.stringify({g:1,r:repo}))}catch(e){}
