@@ -66,7 +66,7 @@
     <div id="loginBox">
       <h1>📁 文件共享站 · 后台</h1>
       <p style="font-size:16px">输入后台密码（初始与工具站进入密码相同）</p>
-      <input type="password" id="loginPw" placeholder="后台密码" autocomplete="section-share-admin current-password">
+      <input type="password" id="loginPw" placeholder="后台密码" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')">
       <label style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:16px;margin-bottom:12px;cursor:pointer;justify-content:flex-start"><input type="checkbox" id="rememberPw" style="width:20px;height:20px;margin:0;accent-color:#D9A521"> 记住密码（30天内免登录）</label>
       <button type="button" onclick="doLogin()">进 入</button>
       <div class="err" id="loginErr"></div>
