@@ -466,7 +466,8 @@ $("fileImport").addEventListener("change",function(){
   this.value="";
 });
 $("btnReset").addEventListener("click",function(){
-  if(confirm("确定恢复默认配置？当前未保存的修改将丢失。")){
+  if($("btnReset").getAttribute("data-armed")!=="1"){$("btnReset").setAttribute("data-armed","1");$("btnReset").textContent="⚠ 再点=恢复默认";$("btnReset").style.background="#B03A2E";$("btnReset").style.color="#fff";setTimeout(function(){$("btnReset").removeAttribute("data-armed");$("btnReset").textContent="恢复默认";$("btnReset").style.background="";$("btnReset").style.color="";}, 3000);return;}
+    {
     render(defaultConfig());
     toast("已恢复默认（尚未保存，确认后请点保存）");
   }
@@ -486,7 +487,8 @@ $("evBody").addEventListener("click",function(e){
     var i=parseInt(t.getAttribute("data-del"),10);
     var c=collect();
     var ev=c.events[i];
-    if(confirm("确定删除项目“"+(ev?ev.name:"")+"”？")){
+    if(t.getAttribute("data-armed")!=="1"){t.setAttribute("data-armed","1");t.textContent="确认?";t.style.background="#B03A2E";t.style.color="#fff";setTimeout(function(){t.removeAttribute("data-armed");t.textContent="删";t.style.background="";t.style.color="";}, 3000);return;}
+    if(1){
       c.events.splice(i,1);
       renderEvents(c.events);
       updateOverview();
