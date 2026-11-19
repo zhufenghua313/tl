@@ -113,7 +113,7 @@ function renderTables(numbers){
 }
 
 /* 数据加载（meta+表+身份） */
-fetch("/soft/api/numbers").then(function(r){return r.json()}).then(function(d){
+fetch("/soft/api/numbers",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
   if(!d.ok){el("metaBox").innerHTML="<span>"+esc(d.msg||"加载失败")+"</span>";return;}
   META=d.meta;IS_ADMIN=!d.me; /* 管理员响应没有 me 字段 */
   renderMeta(d.meta);renderTables(d.numbers);
@@ -129,7 +129,7 @@ el("btnGen").addEventListener("click",function(){
     .then(function(r){return r.json()})
     .then(function(d){
       msg.className="msg "+(d.ok?"ok":"err");msg.textContent=d.msg||"";
-      if(d.ok)fetch("/soft/api/numbers").then(function(r){return r.json()}).then(function(d2){
+      if(d.ok)fetch("/soft/api/numbers",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d2){
         renderMeta(d2.meta);renderTables(d2.numbers);
       });
       btn.disabled=false;btn.textContent="🎲 一键生成号码";
