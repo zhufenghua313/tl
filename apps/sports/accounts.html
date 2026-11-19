@@ -120,7 +120,9 @@
   </div>
 
   <div class="card">
-    <h2>📋 账号列表</h2>
+    <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;">📋 账号列表
+      <button id="btnDelAll" class="op red" style="font-size:12.5px;padding:5px 12px;white-space:nowrap;">🗑 全部删除</button>
+    </h2>
     <p class="desc" id="accCount">加载中…</p>
     <div style="overflow-x:auto;">
     <table id="accTable">
@@ -200,7 +202,12 @@ el("accBody").addEventListener("click",function(e){
   }
   if(t.hasAttribute&&t.hasAttribute("data-del")){
     var u2=t.getAttribute("data-del");
-    if(!confirm("确定删除账号「"+u2+"」？此操作不可撤销。"))return;
+    /* 两段式确认（v4.28：手机WebView不弹confirm的坑，改页面内确认） */
+    if(t.getAttribute("data-armed")!=="1"){
+      t.setAttribute("data-armed","1");t.textContent="确认删?";t.style.background="#B03A2E";t.style.color="#fff";
+      setTimeout(function(){t.removeAttribute("data-armed");t.textContent="删";t.style.background="";t.style.color="";},3000);
+      return;
+    }
     var fd=new FormData();fd.append("username",u2);
     fetch("/soft/__admin/account-del",{method:"POST",body:fd})
       .then(function(r){return r.json()})
@@ -235,6 +242,42 @@ el("btnBatch").addEventListener("click",function(){
       loadList();
     })
     .catch(function(){el("batchMsg").className="msg err";el("batchMsg").textContent="网络异常，稍后再试";});
+});
+
+/* —— v4.28 批量开通自动同步基础配置的班数（ydh_m1_config_v1，站长需求：不用重填） —— */
+(function syncGrades(){
+  try{
+    var cfg=JSON.parse(localStorage.getItem("ydh_m1_config_v1")||"null");
+    if(cfg&&cfg.grades&&cfg.grades.length){
+      for(var gi=0;gi<6;gi++){
+        var inp=el("g"+(gi+1));
+        if(gi<cfg.grades.length){inp.value=cfg.grades[gi].classes;inp.parentNode.style.display="";}
+        else{inp.value="0";inp.parentNode.style.display="none";}
+      }
+    }
+  }catch(e){}
+})();
+
+/* —— v4.28 一键全部删除（管理员账号保留，两段式确认） —— */
+el("btnDelAll").addEventListener("click",function(){
+  var btn=this;
+  var names=Object.keys(ACCS).filter(function(u){return ACCS[u].role!=="admin";});
+  if(!names.length){el("accCount").textContent="没有可删除的账号（管理员除外）";return;}
+  if(btn.getAttribute("data-armed")!=="1"){
+    btn.setAttribute("data-armed","1");
+    btn.textContent="⚠ 再点一次=删全部"+names.length+"个";
+    btn.style.background="#B03A2E";btn.style.color="#fff";
+    setTimeout(function(){btn.removeAttribute("data-armed");btn.textContent="🗑 全部删除";btn.style.background="";btn.style.color="";},4000);
+    return;
+  }
+  btn.textContent="删除中…";btn.disabled=true;
+  (function next(i){
+    if(i>=names.length){btn.disabled=false;btn.textContent="🗑 全部删除";loadList();return;}
+    el("accCount").textContent="正在删除 "+(i+1)+"/"+names.length+" …";
+    var fd=new FormData();fd.append("username",names[i]);
+    fetch("/soft/__admin/account-del",{method:"POST",body:fd})
+      .then(function(){next(i+1)}).catch(function(){next(i+1)});
+  })(0);
 });
 
 loadList();
