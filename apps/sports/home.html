@@ -48,6 +48,17 @@
     <p id="hSub">加载中…</p>
   </section>
   <div class="loading" id="loading">正在核验身份…</div>
+  <div class="card" id="pwCard" style="display:none;margin-top:14px">
+    <h2>🔑 修改我的密码</h2>
+    <p class="desc">原密码验证后换成新密码（建议 6 位以上）；改完需用新密码重新登录</p>
+    <div style="display:grid;gap:8px;max-width:340px">
+      <input type="password" id="pwOld" placeholder="原密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <input type="password" id="pwNew" placeholder="新密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <input type="password" id="pwNew2" placeholder="再输一遍新密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <button id="btnPw" style="padding:10px;border:none;border-radius:99px;background:var(--gold);color:#fff;font-size:14px;cursor:pointer">保存新密码</button>
+      <div id="pwMsg" style="font-size:13px"></div>
+    </div>
+  </div>
   <div id="content" style="display:none">
     <div class="sec-title" id="secMain">我的工作</div>
     <div class="grid" id="gridMain"></div>
@@ -121,7 +132,27 @@ el("btnOut").addEventListener("click",function(){
 fetch("/soft/api/me").then(function(r){return r.json()}).then(function(d){
   if(!d.ok){location.replace("/soft/sports/home.html");return;}
   ME=d;render();
+  el("pwCard").style.display="block"; /* v4.32：所有角色可自助改密 */
 }).catch(function(){el("loading").textContent="网络异常，请刷新重试";});
+
+/* —— v4.32 自助改密（页面内提示，不弹窗） —— */
+el("btnPw").addEventListener("click",function(){
+  var o=el("pwOld").value,n=el("pwNew").value,n2=el("pwNew2").value,m=el("pwMsg");
+  m.style.color="#B03A2E";
+  if(!o||!n||!n2){m.textContent="三个框都要填";return;}
+  if(n!==n2){m.textContent="两次新密码不一致";return;}
+  if(n.length<2){m.textContent="新密码至少 2 位（建议 6 位以上）";return;}
+  m.style.color="#5B6577";m.textContent="⏳ 正在保存…";
+  var fd=new FormData();fd.append("oldpw",o);fd.append("newpw",n);
+  fetch("/soft/api/my-pass",{method:"POST",body:fd})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.ok){m.style.color="#2E7D4F";m.textContent="✅ "+d.msg+"，正在跳登录页…";
+        setTimeout(function(){location.replace("/soft/sports/index.html")},1800);}
+      else{m.style.color="#B03A2E";m.textContent=d.msg||"修改失败";}
+    })
+    .catch(function(){m.style.color="#B03A2E";m.textContent="网络异常，稍后再试";});
+});
 </script>
 </body>
 </html>
