@@ -178,7 +178,7 @@ el("btnSave").addEventListener("click",function(){
 });
 
 el("btnClear").addEventListener("click",function(){
-  if(!confirm("清空重填？（当前内容将丢失）"))return;
+  if(el("btnClear").getAttribute("data-armed")!=="1"){el("btnClear").setAttribute("data-armed","1");el("btnClear").textContent="⚠ 再点=清空";el("btnClear").style.background="#B03A2E";el("btnClear").style.color="#fff";setTimeout(function(){el("btnClear").removeAttribute("data-armed");el("btnClear").textContent="清空重填";el("btnClear").style.background="";el("btnClear").style.color="";}, 3000);return;}
   renderStuList([]);el("saveMsg").textContent="";
 });
 
