@@ -203,10 +203,10 @@ el("btnOut").addEventListener("click",function(){
 
 /* —— 加载：先看自己是谁（窗口卡只给管理员），再拉三份公共数据 —— */
 Promise.all([
-  fetch("/soft/__admin/accounts").then(function(r){return r.status===403||r.status===401?null:r.json()}).catch(function(){return null}),
-  fetch("/soft/api/schedule").then(function(r){return r.json()}),
-  fetch("/soft/api/numbers").then(function(r){return r.json()}),
-  fetch("/soft/api/results").then(function(r){return r.json()})
+  fetch("/soft/__admin/accounts",{cache:"no-store"}).then(function(r){return r.status===403||r.status===401?null:r.json()}).catch(function(){return null}),
+  fetch("/soft/api/schedule",{cache:"no-store"}).then(function(r){return r.json()}),
+  fetch("/soft/api/numbers",{cache:"no-store"}).then(function(r){return r.json()}),
+  fetch("/soft/api/results",{cache:"no-store"}).then(function(r){return r.json()})
 ]).then(function(rs){
   DATA.sched=rs[1].schedule||{days:[]};
   DATA.numbers=rs[2].numbers||{};
