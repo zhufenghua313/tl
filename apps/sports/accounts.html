@@ -51,6 +51,18 @@
   footer{text-align:center;font-size:12.5px;color:var(--sub);margin-top:8px;line-height:1.8;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media(max-width:560px){.two-col{grid-template-columns:1fr;}}
+
+/* —— v4.30 账号卡片（手机多行+行内编辑） —— */
+.acc-card{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:#FBFCFE;}
+.acc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;}
+.acc-name{font-size:14.5px;word-break:break-all;}
+.acc-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.acc-row:last-child{margin-bottom:0;}
+.acc-lab{font-size:12px;color:var(--sub);flex-shrink:0;width:34px;}
+.acc-inp, .acc-sel, .acc-pw{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13.5px;font-family:inherit;background:#fff;color:var(--ink);}
+.acc-inp:focus, .acc-sel:focus, .acc-pw:focus{outline:none;border-color:var(--gold);}
+.acc-sel{flex:0 0 110px;}
+.acc-saved{font-size:12px;color:var(--ok);margin-left:6px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -124,12 +136,7 @@
       <button id="btnDelAll" class="op red" style="font-size:12.5px;padding:5px 12px;white-space:nowrap;">🗑 全部删除</button>
     </h2>
     <p class="desc" id="accCount">加载中…</p>
-    <div style="overflow-x:auto;">
-    <table id="accTable">
-      <thead><tr><th>用户名</th><th>角色</th><th>备注</th><th>操作</th></tr></thead>
-      <tbody id="accBody"></tbody>
-    </table>
-    </div>
+    <div id="accList"></div>
     <div class="empty" id="accEmpty" style="display:none;">还没有账号——用上面表单创建第一个</div>
     <div class="hint">💡 使用说明：<br>① 班级账号建议按「class-年级-班」命名（如 class-3-1），发放给各班主任；<br>② 密码格式建议：班级名-2027 之类，好记不难猜；<br>③ 运动会结束后可整批删除账号。<br>账号数据云端实时保存，各账号的登录与权限已生效。</div>
   </div>
@@ -149,29 +156,44 @@ el("btnOut").addEventListener("click",function(){
 
 /* —— 账号列表加载 —— */
 var ACCS={};
+function roleName(r){return r==="class"?"班级":r==="scorer"?"录入员":r==="admin"?"管理员":r;}
+
 function loadList(){
   fetch("/soft/__admin/accounts").then(function(r){return r.json()}).then(function(d){
     if(!d.ok){el("accCount").textContent="加载失败："+(d.msg||"");return;}
     ACCS=d.accounts||{};
-    el("batchCard").style.display="block"; /* 管理员账号列表加载成功=管理员 */
+    el("batchCard").style.display="block";
     var names=Object.keys(ACCS).sort();
     el("accCount").textContent="共 "+names.length+" 个账号";
-    var tb=el("accBody");tb.innerHTML="";
+    var box=el("accList");box.innerHTML="";
     if(!names.length){el("accEmpty").style.display="block";return;}
     el("accEmpty").style.display="none";
+    var roleOpts=function(cur){
+      var h="";
+      [["class","班级"],["scorer","录入员"],["admin","管理员"]].forEach(function(r2){
+        h+='<option value="'+r2[0]+'"'+(r2[0]===cur?" selected":"")+'>'+r2[1]+'</option>';
+      });
+      return h;
+    };
     names.forEach(function(u){
-      var a=ACCS[u];
-      var tr=document.createElement("tr");
-      tr.innerHTML="<td><b>"+esc(u)+"</b></td>"+
-        "<td><span class='role-tag role-"+esc(a.role)+"'>"+roleName(a.role)+"</span></td>"+
-        "<td style='color:var(--sub)'>"+esc(a.note||"—")+"</td>"+
-        "<td><button class='op' data-edit='"+esc(u)+"'>改</button><button class='op red' data-del='"+esc(u)+"'>删</button></td>";
-      tb.appendChild(tr);
+      var ac=ACCS[u];
+      var card=document.createElement("div");
+      card.className="acc-card";card.setAttribute("data-u",u);
+      card.innerHTML=
+        '<div class="acc-top"><b class="acc-name">'+esc(u)+'</b>'+
+        '<span class="role-tag role-'+esc(ac.role)+'">'+roleName(ac.role)+'</span></div>'+
+        '<div class="acc-row"><span class="acc-lab">角色</span>'+
+        '<select class="acc-sel">'+roleOpts(ac.role)+'</select>'+
+        '<span class="acc-saved" style="display:none">\u2713 已保存</span></div>'+
+        '<div class="acc-row"><span class="acc-lab">备注</span>'+
+        '<input class="acc-inp" value="'+esc(ac.note||"")+'" placeholder="备注（可直接改）"></div>'+
+        '<div class="acc-row"><span class="acc-lab">密码</span>'+
+        '<input class="acc-pw" type="text" placeholder="输入新密码=改密，留空=不改">'+
+        '<button class="op red" data-del="'+esc(u)+'">删</button></div>';
+      box.appendChild(card);
     });
-  }).catch(function(){el("accCount").textContent="网络异常，稍后再试";});
+  }).catch(function(){el("accCount").textContent="网络异常，请刷新重试";});
 }
-function roleName(r){return r==="class"?"班级":r==="scorer"?"录入员":"管理员";}
-
 /* —— 表单提交（创建/更新） —— */
 el("accForm").addEventListener("submit",function(e){
   e.preventDefault();
@@ -191,18 +213,47 @@ el("accForm").addEventListener("submit",function(e){
 });
 el("btnReset").addEventListener("click",function(){el("accForm").reset();el("accMsg").textContent="";});
 
-/* —— 行操作（事件委托：改/删） —— */
-el("accBody").addEventListener("click",function(e){
-  var t=e.target;
-  if(t.hasAttribute&&t.hasAttribute("data-edit")){
-    var u=t.getAttribute("data-edit"),a=ACCS[u];
-    el("fUser").value=u;el("fRole").value=a.role;el("fNote").value=a.note||"";
-    el("fPw").value="";el("accMsg").textContent="正在修改："+u+"（密码留空=不改）";el("accMsg").className="msg";
-    window.scrollTo({top:0,behavior:"smooth"});
+/* —— v4.30 行内编辑：角色/备注/密码改完即存 —— */
+function saveInline(card){
+  var u=card.getAttribute("data-u");
+  var sel=card.querySelector(".acc-sel"),inp=card.querySelector(".acc-inp"),pw=card.querySelector(".acc-pw");
+  var saved=card.querySelector(".acc-saved");
+  var fd=new FormData();
+  fd.append("username",u);
+  fd.append("role",sel.value);
+  fd.append("note",inp.value.trim());
+  fd.append("password",pw.value);
+  fetch("/soft/__admin/account-save",{method:"POST",body:fd})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.ok){
+        saved.textContent="\u2713 已保存";saved.style.display="inline";setTimeout(function(){saved.style.display="none"},1600);
+        ACCS[u].role=sel.value;ACCS[u].note=inp.value.trim();
+        var tag=card.querySelector(".role-tag");
+        tag.className="role-tag role-"+sel.value;tag.textContent=roleName(sel.value);
+        if(pw.value){pw.value="";pw.placeholder="已改密\u2713 留空=不改";setTimeout(function(){pw.placeholder="输入新密码=改密，留空=不改"},2000);}
+      }else{saved.textContent="\u2717 "+(d.msg||"保存失败");saved.style.display="inline";setTimeout(function(){saved.style.display="none"},2200);}
+    })
+    .catch(function(){saved.textContent="\u2717 网络异常";saved.style.display="inline";setTimeout(function(){saved.style.display="none"},2200);});
+}
+el("accList").addEventListener("change",function(e){
+  var card=e.target.closest?e.target.closest(".acc-card"):null;
+  if(card&&e.target.classList.contains("acc-sel"))saveInline(card);
+});
+el("accList").addEventListener("blur",function(e){
+  var card=e.target.closest?e.target.closest(".acc-card"):null;
+  if(card&&(e.target.classList.contains("acc-inp")||e.target.classList.contains("acc-pw"))){
+    if(e.target.classList.contains("acc-pw")&&!e.target.value)return;
+    if(e.target.classList.contains("acc-inp")&&ACCS[card.getAttribute("data-u")]&&e.target.value.trim()===(ACCS[card.getAttribute("data-u")].note||""))return;
+    saveInline(card);
   }
+},true);
+
+/* —— 行操作（v4.30：删=两段式；改=行内直接编辑） —— */
+el("accList").addEventListener("click",function(e){
+  var t=e.target;
   if(t.hasAttribute&&t.hasAttribute("data-del")){
     var u2=t.getAttribute("data-del");
-    /* 两段式确认（v4.28：手机WebView不弹confirm的坑，改页面内确认） */
     if(t.getAttribute("data-armed")!=="1"){
       t.setAttribute("data-armed","1");t.textContent="确认删?";t.style.background="#B03A2E";t.style.color="#fff";
       setTimeout(function(){t.removeAttribute("data-armed");t.textContent="删";t.style.background="";t.style.color="";},3000);
@@ -211,8 +262,8 @@ el("accBody").addEventListener("click",function(e){
     var fd=new FormData();fd.append("username",u2);
     fetch("/soft/__admin/account-del",{method:"POST",body:fd})
       .then(function(r){return r.json()})
-      .then(function(d){loadList();alert(d.msg||"");})
-      .catch(function(){alert("网络异常，稍后再试");});
+      .then(function(d){loadList();})
+      .catch(function(){loadList();});
   }
 });
 
@@ -241,14 +292,9 @@ el("btnBatch").addEventListener("click",function(){
     .then(function(d){
       if(!d.ok){el("batchMsg").className="msg err";el("batchMsg").textContent=d.msg||"生成失败";return;}
       el("batchMsg").className="msg ok";el("batchMsg").textContent=d.msg;
-      var cr=d.created||[];
-      if(cr.length){
-        var h="<div style='font-size:12.5px;color:var(--sub);margin-bottom:6px'>新建账号清单（请分发）：</div><table style='font-size:12.5px'><thead><tr><th>用户名</th><th>班级</th><th>初始密码</th></tr></thead><tbody>";
-        cr.forEach(function(x){h+="<tr><td><b>"+esc(x.user)+"</b></td><td>"+esc(x.className)+"</td><td><code>"+esc(x.pwd)+"</code></td></tr>";});
-        h+="</tbody></table>";
-        el("batchResult").innerHTML=h;
-      }
-      loadList();
+            /* v4.30：不再重复展示清单（账号列表即真相），初始密码=拼音-班号-2027 */
+      el("batchResult").innerHTML="";
+      
     })
     .catch(function(){el("batchMsg").className="msg err";el("batchMsg").textContent="网络异常，稍后再试";});
 });
