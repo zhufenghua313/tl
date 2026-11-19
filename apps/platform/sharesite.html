@@ -37,7 +37,7 @@ var ShareSite = (function () {
        ——分两层转义：外层给本模板，内层留给 Worker 自己跑 */
     return `/* ============================================================
  * ${T} —— 由"程序制作平台·文件共享站积木"生成 v1
- * 部署：Cloudflare Workers（需绑定 KV：命名 TV_CONFIG）
+ * 部署：Cloudflare Workers（需绑定 KV：命名 tl-config 对应的 TL_CONFIG）
  * 配置：部署后往 KV 存三把钥匙（见生成页教程）：
  *   share_webdav_creds = {"account":"手机号","password":"网盘密码"}
  *   share_admin_pw     = SHA256(后台密码)   —— 后台登录用
@@ -72,7 +72,7 @@ export default {
     /* ===== WebDAV 工具（坑⑧：fid=年/月/文件 全链一致） ===== */
     function davSeg(dir) { return String(dir || "").split("/").filter(Boolean).map(encodeURIComponent).join("/"); }
     async function davCreds(env) {
-      try { return JSON.parse((await env.TV_CONFIG.get("share_webdav_creds")) || "null"); } catch (e) { return null; }
+      try { return JSON.parse((await env.TL_CONFIG.get("share_webdav_creds")) || "null"); } catch (e) { return null; }
     }
     async function davPropfind(env, dir) {
       const creds = await davCreds(env);
@@ -129,7 +129,7 @@ export default {
     }
 
     /* ===== 后台认证（坑③：双通道=Authorization头+cookie） ===== */
-    async function shareAdminPwHash(env) { return (await env.TV_CONFIG.get("share_admin_pw")) || ""; }
+    async function shareAdminPwHash(env) { return (await env.TL_CONFIG.get("share_admin_pw")) || ""; }
     async function okShareAdmin(env) {
       let tok = "";
       const am = (request.headers.get("Authorization") || "").match(/^Bearer ([0-9a-f]{64})$/);
@@ -367,11 +367,11 @@ button{width:100%;padding:15px;border:none;border-radius:10px;cursor:pointer;fon
       if (dlPw === delPw) return bad("提取码和删除码不能相同（坑⑪）");
       /* 坑⑫容量闸 */
       const CAP_BYTES = ${Math.round(CAP)};
-      let used = parseInt((await env.TV_CONFIG.get("share_used_bytes")) || "0", 10);
+      let used = parseInt((await env.TL_CONFIG.get("share_used_bytes")) || "0", 10);
       if (used + f.size > CAP_BYTES) return bad("共享站总容量已达上限（${(CAP / 1024 / 1024 / 1024 / 1024).toFixed(0)}TB）——暂不能上传，请联系站长");
       /* 坑⑪码全局唯一 */
       let codes = [];
-      try { codes = JSON.parse((await env.TV_CONFIG.get("share_codes")) || "[]"); } catch (e) { codes = []; }
+      try { codes = JSON.parse((await env.TL_CONFIG.get("share_codes")) || "[]"); } catch (e) { codes = []; }
       if (codes.some(c => c.pw === dlPw)) return bad("这个提取码已被占用——请换一个");
       if (codes.some(c => c.pw === delPw)) return bad("这个删除码已被占用——请换一个");
       /* 坑⑧按月归档 */
@@ -396,10 +396,10 @@ button{width:100%;padding:15px;border:none;border-radius:10px;cursor:pointer;fon
         method: "PUT", headers: { "Authorization": "Basic " + M.auth }, body: f.stream(),
       });
       if (r.status !== 201 && r.status !== 204) return bad("上传失败（" + r.status + "）——请重试");
-      await env.TV_CONFIG.put("share_used_bytes", String(used + f.size));
+      await env.TL_CONFIG.put("share_used_bytes", String(used + f.size));
       codes.push({ pw: dlPw, file: fid, kind: "dl", exp: 0, expText: "永久" });
       codes.push({ pw: delPw, file: fid, kind: "del", exp: 0, expText: "永久" });
-      await env.TV_CONFIG.put("share_codes", JSON.stringify(codes));
+      await env.TL_CONFIG.put("share_codes", JSON.stringify(codes));
       if (isAjax) return new Response(JSON.stringify({ ok: true, name: finalName, sizeKB: Math.max(1, Math.round(f.size / 1024)), dir: M.dir, dlPw, delPw }), { headers: { "Content-Type": "application/json; charset=utf-8" } });
       return new Response(upPage(null), { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
@@ -415,7 +415,7 @@ button{width:100%;padding:15px;border:none;border-radius:10px;cursor:pointer;fon
       const L = await davList(env);
       if (L.err) return new Response(JSON.stringify({ ok: false, msg: L.err }), { status: 502, headers: { "Content-Type": "application/json; charset=utf-8" } });
       let codes = [];
-      try { codes = JSON.parse((await env.TV_CONFIG.get("share_codes")) || "[]"); } catch (e) {}
+      try { codes = JSON.parse((await env.TL_CONFIG.get("share_codes")) || "[]"); } catch (e) {}
       return new Response(JSON.stringify({ ok: true, files: L.files, codes }), { headers: { "Content-Type": "application/json; charset=utf-8" } });
     }
 
@@ -424,7 +424,7 @@ button{width:100%;padding:15px;border:none;border-radius:10px;cursor:pointer;fon
       const fd = await request.formData();
       const pw = (fd.get("pw") || "").trim();
       let codes = [];
-      try { codes = JSON.parse((await env.TV_CONFIG.get("share_codes")) || "[]"); } catch (e) { codes = []; }
+      try { codes = JSON.parse((await env.TL_CONFIG.get("share_codes")) || "[]"); } catch (e) { codes = []; }
       const hit = codes.find(c => c.pw && c.pw === pw);
       if (hit && hit.exp && Date.now() > hit.exp) return new Response(frontPage("这个码已过期——请联系分享人获取新码"), { status: 401, headers: { "Content-Type": "text/html; charset=utf-8" } });
       if (hit && hit.kind === "del") {
