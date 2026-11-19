@@ -220,12 +220,16 @@ function loadData(adminTarget){
     el("stat").textContent=rec.updatedAt?("上次保存："+new Date(rec.updatedAt).toLocaleString("zh-CN")+" · 共"+rec.students.length+"人"):"尚未保存过";
     /* 管理员界面 */
     fetch("/soft/api/events",{cache:"no-store"}).then(function(r){return r.json()}).then(function(){});
-  }).catch(function(){
-    el("stat").textContent="加载失败，请刷新重试";
+  }).catch(function(e){
+    el("stat").textContent="加载失败："+((e&&e.message)||"网络异常");
+    if(loadData._t===undefined)loadData._t=0;
+    if(++loadData._t<3){setTimeout(function(){loadData(adminTarget)},900);}else{loadData._t=0;}
   });
 }
 
-/* —— 启动：先拿身份再渲染 —— */
+/* —— 启动：先拿身份再渲染（v4.35：自动重试3次+错误详情，分诊网络抖动） —— */
+var BOOT_T=0;
+function boot(){
 fetch("/soft/api/events",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
   EVENTS=d.events||[];
   return fetch("/soft/api/entry-data",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d2){
@@ -253,9 +257,13 @@ fetch("/soft/api/events",{cache:"no-store"}).then(function(r){return r.json()}).
       renderStuList(rec.students);
     }
   });
-}).catch(function(){
-  el("stat").textContent="加载失败，请刷新重试";
+}).catch(function(e){
+  BOOT_T++;
+  if(BOOT_T<3){setTimeout(boot,900);return;}
+  el("stat").textContent="加载失败："+((e&&e.message)||"网络异常")+"（已自动重试3次）——若反复出现请截图这行字";
 });
+}
+boot();
 </script>
 </body>
 </html>
