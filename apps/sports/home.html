@@ -129,7 +129,7 @@ el("btnOut").addEventListener("click",function(){
   .catch(function(){location.replace("/soft/sports/home.html")});
 });
 
-fetch("/soft/api/me").then(function(r){return r.json()}).then(function(d){
+fetch("/soft/api/me",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
   if(!d.ok){location.replace("/soft/sports/home.html");return;}
   ME=d;render();
   el("pwCard").style.display="block"; /* v4.32：所有角色可自助改密 */
