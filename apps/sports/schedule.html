@@ -201,7 +201,7 @@ el("days").addEventListener("click",function(e){
     var k3=t.getAttribute("data-del").split("_");
     var day3=DATA.days[+k3[0]];
     var it3=day3.items[+k3[1]];
-    if(!confirm("删除场次「"+it3.name+"」？"))return;
+    if(t.getAttribute("data-armed")!=="1"){t.setAttribute("data-armed","1");t.textContent="确认?";t.style.background="#B03A2E";t.style.color="#fff";setTimeout(function(){t.removeAttribute("data-armed");t.textContent="✕";t.style.background="";t.style.color="";}, 3000);return;}
     day3.items.splice(+k3[1],1);
     render();return;
   }
@@ -212,7 +212,7 @@ el("days").addEventListener("click",function(e){
   }
   if(t.hasAttribute("data-daydel")){
     var di5=+t.getAttribute("data-daydel");
-    if(!confirm("删除整个「"+DATA.days[di5].title+"」（含全部场次）？"))return;
+    if(t.getAttribute("data-armed")!=="1"){t.setAttribute("data-armed","1");t.textContent="确认删日?";t.style.background="#B03A2E";t.style.color="#fff";setTimeout(function(){t.removeAttribute("data-armed");t.textContent="删日";t.style.background="";t.style.color="";}, 3000);return;}
     DATA.days.splice(di5,1);render();return;
   }
   if(t.hasAttribute("data-adddayitem")){
@@ -232,7 +232,7 @@ el("btnAddDay").addEventListener("click",function(){
   render();
 });
 el("btnGenAuto").addEventListener("click",function(){
-  if(DATA&&DATA.days.length&&!confirm("已有赛程，重新自动生成将覆盖当前内容。继续？"))return;
+  if(el("btnGenAuto").getAttribute("data-armed")!=="1"){el("btnGenAuto").setAttribute("data-armed","1");el("btnGenAuto").textContent="⚠ 再点=覆盖重生成";el("btnGenAuto").style.background="#B03A2E";el("btnGenAuto").style.color="#fff";setTimeout(function(){el("btnGenAuto").removeAttribute("data-armed");el("btnGenAuto").textContent="⚡ 按传统自动生成";el("btnGenAuto").style.background="";el("btnGenAuto").style.color="";}, 3000);return;}
   autoGen();
   el("msg").className="msg ok";el("msg").textContent="已按传统生成，可上下移微调";
 });
