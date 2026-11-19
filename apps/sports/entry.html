@@ -69,7 +69,8 @@
 <div class="wrap">
 <header class="top">
     <h1>运动会报名</h1>
-    <p>填写学生姓名、勾选项目（每人最多 2 项）——只有本班可编辑</p>
+    <p>填写学生姓名、勾选项目（每人最多 2 项）——只有本班可编辑
+    <p id="navClass" style="margin:6px 0 0;font-size:15px;color:#E8BC4F;text-align:center"></p></p>
   </header>
   <div class="lockbar" id="lockBar">🔒 报名已锁定——名单不能再修改，如有问题请联系管理员。</div>
 
@@ -215,7 +216,7 @@ function loadData(adminTarget){
     var rec=data[key]||{students:[]};
     MY.className=rec.className||d.myClass||key;
     MY.grade=gradeOf(MY.className);
-    el("navClass").textContent=(MY.className||"运动会报名")+" · 报名表";
+    var ncEl=el("navClass");if(ncEl)ncEl.textContent=(MY.className||"运动会报名")+" · 报名表";
     renderStuList(rec.students);
     el("stat").textContent=rec.updatedAt?("上次保存："+new Date(rec.updatedAt).toLocaleString("zh-CN")+" · 共"+rec.students.length+"人"):"尚未保存过";
     /* 管理员界面 */
@@ -241,7 +242,7 @@ fetch("/soft/api/events",{cache:"no-store"}).then(function(r){return r.json()}).
     var rec=data[key]||{students:[]};
     MY.className=rec.className||d2.myClass||key;
     MY.grade=gradeOf(MY.className);
-    el("navClass").textContent=(MY.className||"运动会报名")+" · 报名表";
+    var ncEl=el("navClass");if(ncEl)ncEl.textContent=(MY.className||"运动会报名")+" · 报名表";
     renderStuList(rec.students);
     el("stat").textContent=rec.updatedAt?("上次保存："+new Date(rec.updatedAt).toLocaleString("zh-CN")+" · 共"+rec.students.length+"人"):"尚未保存过";
     /* 管理员识别：有 classList 就是管理员视角 */
