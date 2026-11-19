@@ -123,7 +123,7 @@ fetch("/soft/api/numbers").then(function(r){return r.json()}).then(function(d){
 /* 生成（管理员） */
 el("btnGen").addEventListener("click",function(){
   var btn=this,msg=el("genMsg");
-  if(!confirm("确定生成号码？将按当前报名数据重排（已有号码会被覆盖）。"))return;
+  if(btn.getAttribute("data-armed")!=="1"){btn.setAttribute("data-armed","1");btn.textContent="⚠ 再点=生成号码";btn.style.background="#B03A2E";btn.style.color="#fff";setTimeout(function(){btn.removeAttribute("data-armed");btn.textContent="🎲 一键生成号码";btn.style.background="";btn.style.color="";}, 3000);return;}
   btn.disabled=true;btn.textContent="生成中…";msg.textContent="";
   fetch("/soft/api/numbers-gen",{method:"POST"})
     .then(function(r){return r.json()})
