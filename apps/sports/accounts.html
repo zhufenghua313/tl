@@ -224,7 +224,16 @@ el("btnBatch").addEventListener("click",function(){
     if(v>0){counts[String(g)]=v;any+=v;}
   }
   if(!any){el("batchMsg").className="msg err";el("batchMsg").textContent="先设置至少一个年级的班级数（大于0）";return;}
-  if(!confirm("将为 "+any+" 个班生成班主任账号（已存在的自动跳过），继续？"))return;
+  /* v4.29 两段式确认（WebView不弹confirm，改页面内确认） */
+  var bb=el("btnBatch");
+  if(bb.getAttribute("data-armed")!=="1"){
+    bb.setAttribute("data-armed","1");
+    bb.textContent="⚠ 再点一次=生成"+any+"个班账号";
+    bb.style.background="#B03A2E";bb.style.color="#fff";
+    setTimeout(function(){bb.removeAttribute("data-armed");bb.textContent="🏫 一键生成班级账号";bb.style.background="";bb.style.color="";},4000);
+    return;
+  }
+  bb.removeAttribute("data-armed");bb.textContent="🏫 一键生成班级账号";bb.style.background="";bb.style.color="";
   el("batchMsg").className="msg";el("batchMsg").textContent="⏳ 正在生成…";
   var fd=new FormData();fd.append("counts",JSON.stringify(counts));
   fetch("/soft/api/classes-setup",{method:"POST",body:fd})
