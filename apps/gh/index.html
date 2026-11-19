@@ -344,7 +344,7 @@ function closeEditor(){$('editor-box').style.display='none';$('flist').style.dis
 function renameFile(){if(!editing)return;renameAsk(editing.path,editing.sha)}
 function deleteFile(){if(!editing)return;const fp=editing.path;const sha=editing.sha;closeEditor();deleteAsk(fp,sha)}
 function saveFile(){if(!editing)return;const c=$('editor').value;
- gh('/contents/'+editing.path,{method:'PUT',body:JSON.stringify({message:'tv-admin: update '+editing.name,content:b64(c),sha:editing.sha})})
+ gh('/contents/'+editing.path,{method:'PUT',body:JSON.stringify({message:'tl-admin: update '+editing.name,content:b64(c),sha:editing.sha})})
  .then(r=>{editing.sha=r.content.sha;toast('✅ 已保存（继续编辑中，防掉线）——返回列表时列表自动刷新')})
  .catch(e=>toast('保存失败：'+e.message+'（若提示sha不匹配请刷新重开）','e'))}
 
@@ -385,7 +385,7 @@ function newFolder(){dlg('📁 新建文件夹（在当前目录创建，可含�
  const full=(curPath?curPath+'/':'')+name;
  const dir=full.includes('/')?full.split('/').slice(0,-1).join('/'):curPath;
  const mk=n=>{const fp=(curPath?curPath+'/':'')+n;
-  return gh('/contents/'+fp+'/.gitkeep',{method:'PUT',body:JSON.stringify({message:'tv-admin: create folder '+fp,content:b64('\n')})})
+  return gh('/contents/'+fp+'/.gitkeep',{method:'PUT',body:JSON.stringify({message:'tl-admin: create folder '+fp,content:b64('\n')})})
   .then(()=>{toast('✅ 文件夹已创建'+(n!==name?'（名字：'+n+'）':''));refreshSoon(dir)})};
  toast('⏳ 正在检查重名…','i');
  gh('/contents/'+full).then(()=>dupDlg(name,v=>{
@@ -396,14 +396,14 @@ function newFolder(){dlg('📁 新建文件夹（在当前目录创建，可含�
 function copyTo(fp){destDlg('📤 复制到哪：'+fp.split('/').pop(),dest=>{
  const name=fp.split('/').pop();const target=(dest?dest+'/':'')+name;
  if(target===fp)return toast('源和目标相同','i');
- gh('/contents/'+fp).then(f=>gh('/contents/'+target,{method:'PUT',body:JSON.stringify({message:'tv-admin: copy → '+target,content:f.content})}))
+ gh('/contents/'+fp).then(f=>gh('/contents/'+target,{method:'PUT',body:JSON.stringify({message:'tl-admin: copy → '+target,content:f.content})}))
  .then(()=>{toast('✅ 已复制到 '+(target));refreshSoon(dest)})
  .catch(e=>toast('复制失败：'+(String(e.message).includes('sha')?'目标已有同名文件':e.message),'e'))})}
 function moveTo(fp){destDlg('➡️ 移动到哪：'+fp.split('/').pop(),dest=>{
  const name=fp.split('/').pop();const target=(dest?dest+'/':'')+name;
  if(target===fp)return toast('源和目标相同','i');
- gh('/contents/'+fp).then(f=>gh('/contents/'+target,{method:'PUT',body:JSON.stringify({message:'tv-admin: move → '+target,content:f.content})})
-  .then(()=>gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tv-admin: remove old',sha:f.sha})})))
+ gh('/contents/'+fp).then(f=>gh('/contents/'+target,{method:'PUT',body:JSON.stringify({message:'tl-admin: move → '+target,content:f.content})})
+  .then(()=>gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tl-admin: remove old',sha:f.sha})})))
  .then(()=>{toast('✅ 已移动到 '+(target));refreshSoon(dest)})
  .catch(e=>toast('移动失败：'+(String(e.message).includes('sha')?'目标已有同名文件':e.message),'e'))})}
 function refreshSoon(dir){setTimeout(()=>loadDir(dir),1500);setTimeout(()=>loadDir(dir),4500)}
@@ -462,7 +462,7 @@ function copyDirTo(fp){destDlg('📤 文件夹复制到哪：'+fp.split('/').pop
   const targetRoot=(dest?dest+'/':'')+fp.split('/').pop();
   let done=0;const next=()=>{if(done>=files.length)return toast('✅ 文件夹已复制到 '+targetRoot+'（'+files.length+'个文件）'),refreshSoon(dest);
    const f=files[done++];
-   gh('/contents/'+f.path).then(c=>gh('/contents/'+targetRoot+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tv-admin: dir copy '+f.path,content:c.content})}).then(()=>next()).catch(()=>next()))
+   gh('/contents/'+f.path).then(c=>gh('/contents/'+targetRoot+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tl-admin: dir copy '+f.path,content:c.content})}).then(()=>next()).catch(()=>next()))
    .catch(()=>next())};
   next()}).catch(e=>toast('复制失败：'+e.message,'e'))})}
 function moveDirTo(fp){destDlg('➡️ 文件夹移动到哪：'+fp.split('/').pop(),dest=>{
@@ -474,8 +474,8 @@ function moveDirTo(fp){destDlg('➡️ 文件夹移动到哪：'+fp.split('/').p
   let done=0;const next=()=>{if(done>=files.length){
     toast('✅ 文件夹已移动到 '+targetRoot);refreshSoon(dest);return loadDir('');}
    const f=files[done++];
-   gh('/contents/'+f.path).then(c=>gh('/contents/'+targetRoot+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tv-admin: dir move '+f.path,content:c.content})})
-    .then(()=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tv-admin: rm '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
+   gh('/contents/'+f.path).then(c=>gh('/contents/'+targetRoot+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tl-admin: dir move '+f.path,content:c.content})})
+    .then(()=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tl-admin: rm '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
    .catch(()=>next()))};
   next()}).catch(e=>toast('移动失败：'+e.message,'e'))})}
 function renameDirAsk(fp){const parts=fp.split('/');const dir=parts.slice(0,-1).join('/');
@@ -489,8 +489,8 @@ function renameDirAsk(fp){const parts=fp.split('/');const dir=parts.slice(0,-1).
    let done=0;const next=()=>{if(done>=files.length){
      toast('✅ 文件夹已改名 → '+target.split('/').pop());refreshSoon(dir);return;}
     const f=files[done++];
-    gh('/contents/'+f.path).then(c=>gh('/contents/'+target+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tv-admin: dir rename '+f.path,content:c.content})})
-     .then(()=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tv-admin: rm '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
+    gh('/contents/'+f.path).then(c=>gh('/contents/'+target+f.path.slice(fp.length),{method:'PUT',body:JSON.stringify({message:'tl-admin: dir rename '+f.path,content:c.content})})
+     .then(()=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tl-admin: rm '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
      .catch(()=>next()))};
    next()}).catch(e=>toast('改名失败：'+e.message,'e'))})}
 function deleteDirAsk(fp){const parts=fp.split('/');const dir=parts.slice(0,-1).join('/');
@@ -500,7 +500,7 @@ function deleteDirAsk(fp){const parts=fp.split('/');const dir=parts.slice(0,-1).
    const files=(t.tree||[]).filter(x=>x.path.startsWith(fp+'/')&&x.type==='blob');
    let done=0;const next=()=>{if(done>=files.length)return toast('🗑 文件夹已删除（'+files.length+'个文件）'),refreshSoon(dir);
     const f=files[done++];
-    gh('/contents/'+f.path).then(c=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tv-admin: dir del '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
+    gh('/contents/'+f.path).then(c=>gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tl-admin: dir del '+f.path,sha:c.sha})}).then(()=>next()).catch(()=>next()))
     .catch(()=>next())};
    next()}).catch(e=>toast('删除失败：'+e.message,'e'))})}
 /* v32: 批量操作 */
@@ -554,8 +554,8 @@ function batchMove(){const p=picked();if(!p.length)return;
      const src=f.path;const dst=isDir?target+f.path.slice(sel.path.length):target;
      jobs=jobs.then(()=>gh('/contents/'+src).then(c=>{
       total++;
-      return gh('/contents/'+dst,{method:'PUT',body:JSON.stringify({message:'tv-admin: batch move '+src,content:c.content})})
-       .then(()=>gh('/contents/'+src,{method:'DELETE',body:JSON.stringify({message:'tv-admin: rm '+src,sha:c.sha})}));
+      return gh('/contents/'+dst,{method:'PUT',body:JSON.stringify({message:'tl-admin: batch move '+src,content:c.content})})
+       .then(()=>gh('/contents/'+src,{method:'DELETE',body:JSON.stringify({message:'tl-admin: rm '+src,sha:c.sha})}));
      }));
     });
    });
@@ -577,7 +577,7 @@ function batchCopy(){const p=picked();if(!p.length)return;
      const src=f.path;const dst=isDir?target+f.path.slice(sel.path.length):target;
      jobs=jobs.then(()=>gh('/contents/'+src).then(c=>{
       total++;
-      return gh('/contents/'+dst,{method:'PUT',body:JSON.stringify({message:'tv-admin: batch copy '+src,content:c.content})});
+      return gh('/contents/'+dst,{method:'PUT',body:JSON.stringify({message:'tl-admin: batch copy '+src,content:c.content})});
      }));
     });
    });
@@ -596,7 +596,7 @@ function batchDelete(){const p=picked();if(!p.length)return;
     files.forEach(f=>{
      jobs=jobs.then(()=>gh('/contents/'+f.path).then(c=>{
       total++;
-      return gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tv-admin: batch del '+f.path,sha:c.sha})});
+      return gh('/contents/'+f.path,{method:'DELETE',body:JSON.stringify({message:'tl-admin: batch del '+f.path,sha:c.sha})});
      }));
     });
    });
@@ -612,7 +612,7 @@ function uploadOne(f){
  const doPut=(name)=>{const fp=(curPath?curPath+'/':'')+name;
   const rd=new FileReader();
   rd.onload=()=>{const b64=rd.result.split(',')[1];
-   gh('/contents/'+fp,{method:'PUT',body:JSON.stringify({message:'tv-admin: upload '+name,content:b64})})
+   gh('/contents/'+fp,{method:'PUT',body:JSON.stringify({message:'tl-admin: upload '+name,content:b64})})
    .then(()=>{toast('📤 已上传 '+name+(name!==f.name?'（自动改名自 '+f.name+'）':''));refreshSoon(curPath)})
    .catch(e=>toast('上传失败：'+e.message,'e'))};
   rd.readAsDataURL(f)};
@@ -635,7 +635,7 @@ window.addEventListener('drop',e=>{e.preventDefault();_dragDepth=0;$('drop-mask'
  [...fs].forEach((f,i)=>setTimeout(()=>uploadOne(f),i*700))});
 function newFile(){dlg('📄 新建文件（在当前目录创建，可含子路径）','',name=>{if(!name)return;
  const dir=curPath;const full=(dir?dir+'/':'')+name;
- const mk=n=>gh('/contents/'+(dir?dir+'/':'')+n,{method:'PUT',body:JSON.stringify({message:'tv-admin: create '+(dir?dir+'/':'')+n,content:b64('\n')})})
+ const mk=n=>gh('/contents/'+(dir?dir+'/':'')+n,{method:'PUT',body:JSON.stringify({message:'tl-admin: create '+(dir?dir+'/':'')+n,content:b64('\n')})})
   .then(()=>{toast('✅ 已创建'+(n!==name?'（名字：'+n+'）':''));loadDir(dir)});
  gh('/contents/'+full).then(()=>dupDlg(name,v=>{
    if(v==='skip')return;
@@ -645,12 +645,12 @@ function newFile(){dlg('📄 新建文件（在当前目录创建，可含子路
 function renameAsk(fp,sha){const parts=fp.split('/');const dir=parts.slice(0,-1).join('/');
  gh('/contents/'+fp).then(f=>{const c=f.content||'';
   dlg('✏️ 改名：'+parts.at(-1),fp,name=>{if(!name||name===fp)return;
-   gh('/contents/'+name,{method:'PUT',body:JSON.stringify({message:'tv-admin: rename '+parts.at(-1)+' → '+name.split('/').at(-1),content:c})})
-   .then(()=>gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tv-admin: remove old '+parts.at(-1),sha:sha})}))
+   gh('/contents/'+name,{method:'PUT',body:JSON.stringify({message:'tl-admin: rename '+parts.at(-1)+' → '+name.split('/').at(-1),content:c})})
+   .then(()=>gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tl-admin: remove old '+parts.at(-1),sha:sha})}))
    .then(()=>{toast('✅ 改名完成');refreshSoon(dir)}).catch(e=>toast('改名失败：'+e.message,'e'))})})}
 function deleteAsk(fp,sha){const parts=fp.split('/');const dir=parts.slice(0,-1).join('/');
  dlg('⚠️ 确认删除：'+parts.at(-1)+'？（请输入 删除 两个字再点确定）','',x=>{if(x!=='删除')return toast('已取消','i');
-  gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tv-admin: delete '+parts.at(-1),sha:sha})})
+  gh('/contents/'+fp,{method:'DELETE',body:JSON.stringify({message:'tl-admin: delete '+parts.at(-1),sha:sha})})
   .then(()=>{toast('🗑 已删除');refreshSoon(dir)}).catch(e=>toast('删除失败：'+e.message,'e'))})}
 
 /* 启动 — 沿用站长安全铁律（2026-11-04 定）：
