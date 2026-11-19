@@ -159,7 +159,7 @@ var ACCS={};
 function roleName(r){return r==="class"?"班级":r==="scorer"?"录入员":r==="admin"?"管理员":r;}
 
 function loadList(){
-  fetch("/soft/__admin/accounts").then(function(r){return r.json()}).then(function(d){
+  fetch("/soft/__admin/accounts",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
     if(!d.ok){el("accCount").textContent="加载失败："+(d.msg||"");return;}
     ACCS=d.accounts||{};
     el("batchCard").style.display="block";
