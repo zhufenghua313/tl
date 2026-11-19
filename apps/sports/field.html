@@ -13,7 +13,7 @@
   nav{position:sticky;top:0;z-index:50;background:rgba(20,33,61,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(217,165,33,.25);}
   .nav-in{flex-wrap:wrap;max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .nav-title{color:var(--goldL);font-weight:700;font-size:16px;}
-  .btn-out{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .btn-out{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;}.crumbs{display:flex;gap:2px;align-items:center;font-size:13px;flex:1;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap}.crumbs a{color:#E8BC4F;text-decoration:none;padding:4px 7px;border-radius:6px;flex-shrink:0}.crumbs a:active{background:rgba(255,255,255,.15)}.crumbs b{color:rgba(255,255,255,.95);font-weight:600;flex-shrink:0}.crumbs .sep{color:rgba(255,255,255,.35);flex-shrink:0}
   .hero{background:linear-gradient(135deg,var(--deep) 0%,var(--deep3) 100%);border-radius:14px;color:#fff;padding:20px 18px;margin-bottom:14px;box-shadow:0 6px 18px rgba(20,33,61,.25);}
   .hero h1{font-size:20px;margin-bottom:6px;}
   .hero p{font-size:13px;color:rgba(255,255,255,.75);}
@@ -57,8 +57,7 @@
 </head>
 <body>
 <nav><div class="nav-in"><div class="brand" style="color:#fff;display:flex;align-items:center;gap:10px;flex-shrink:0"><span style="display:inline-block;flex-shrink:0;font-size:22px;line-height:1;align-self:center;animation:br 2s infinite">🏃</span><div><b style="display:block;font-size:17px;line-height:1.2;color:#E8BC4F">运动会</b><span style="display:block;font-size:12px;line-height:1.2;color:#E8BC4F;opacity:.8">管理系统</span></div></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-    <a href="/apps/sports/home.html" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:14px;padding:7px 14px;text-decoration:none;display:inline-block;font-weight:600;">🏠 工作台</a>
+  <div class="crumbs"><a href="/">首页</a><span class="sep">›</span><a href="/apps/sports/home.html">工作台</a><span class="sep">›</span><b>检录查询</b></div><div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
     <button type="button" id="btnOut" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:14px;padding:7px 14px;cursor:pointer;font-family:inherit;font-weight:600;">🚪 退出登录</button>
   </div>
 </div></nav>
