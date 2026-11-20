@@ -85,8 +85,8 @@
   <div class="card" id="entryCard" style="display:none">
     <h2>✍️ <span id="curEv"></span></h2>
     <table class="res"><thead><tr><th style="width:60px">号码/道</th><th>姓名/班级</th><th style="width:110px">成绩</th><th style="width:60px">名次</th><th>备注</th></tr></thead><tbody id="resBody"></tbody></table>
-    <div class="bar"><button class="btn-gold" id="btnSave" type="button">💾 保存本场成绩</button><span class="msg" id="msg"></span></div>
-    <div class="hint">径赛成绩填时间（如 9.8 秒）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次只填前八名数字，未得名留空。</div>
+    <div class="bar"><select id="rkDir" style="background:#1B2A45;color:#E8BC4F;border:1.5px solid rgba(232,188,79,.45);border-radius:10px;padding:11px 10px;font-size:14px;font-family:inherit;"><option value="auto">方向：按项目名判断</option><option value="desc">数值大者优（跳高/跳远等田赛）</option><option value="asc">数值小者优（跑步等径赛）</option></select> <button class="btn-gold" id="btnRank" type="button">🏆 自动名次</button> <button class="btn-gold" id="btnSave" type="button">💾 保存本场成绩</button><span class="msg" id="msg"></span></div>
+    <div class="hint">径赛成绩填时间（如 9.8 秒）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次可点「🏆 自动名次」按成绩自动生成（同成绩并列，如 1、1、3），生成后仍可手工修改——跳高同高度按失败次数比较名次时，请手工调整；方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好），也可手动指定。</div>
   </div>
 
   <footer>运动会管理系统 · M7 成绩录入 ｜ 手搓 v1 ｜ 成绩存云端，公示期内录入员可改<br>时间窗控制：运动会开始 → 公示期结束（需求第5条）</footer>
@@ -167,6 +167,37 @@ function collectEntry(){
   });
   return list;
 }
+
+/* v4.46 自动名次：按成绩排序生成名次（同成绩并列 1,1,3），只填前八；
+   方向 auto=按项目名判断（跳高/跳远/铅球等田赛大者优，跑步等径赛小者优）；
+   跳高同高度失败次数比较属特殊规则——生成后手工微调（站长 09:08 需求） */
+function fieldEvent(name){ return /跳高|跳远|铅球|垒球|实心球|沙包|标枪|掷|投掷|立定/.test(String(name)); }
+function autoRank(){
+  collectEntry();
+  var list=window.__list||[];
+  var dir=el("rkDir").value;
+  if(dir==="auto") dir=fieldEvent(DATA.cur)?"desc":"asc";
+  var idxs=[];
+  list.forEach(function(e,i){
+    var v=parseFloat(String(e.result).replace(/[^0-9.]/g,""));
+    if(e.result!=="" && e.result!=null && !isNaN(v) && isFinite(v)) idxs.push({i:i,v:v});
+  });
+  if(!idxs.length){ el("msg").className="msg err"; el("msg").textContent="先填成绩再自动名次"; return; }
+  idxs.sort(function(a,b){ return dir==="desc" ? b.v-a.v : a.v-b.v; });
+  idxs.forEach(function(o){ if(!(list[o.i].rank||"").trim()) list[o.i].__auto=null; });
+  var i=0;
+  while(i<idxs.length){
+    var j=i;
+    while(j+1<idxs.length && Math.abs(idxs[j+1].v-idxs[i].v)<1e-9) j++;
+    var rk=(i+1)<=8?String(i+1):"";
+    for(var k=i;k<=j;k++){ var o=idxs[k]; if(!(list[o.i].rank||"").trim()) list[o.i].rank=rk; }
+    i=j+1;
+  }
+  renderEntry();
+  el("msg").className="msg ok";
+  el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"自动生成（已有手工名次已保留，同成绩并列，>8 名留空）——可继续手工调整后保存";
+}
+el("btnRank").addEventListener("click",autoRank);
 
 el("evList").addEventListener("click",function(e){
   var t=e.target;
