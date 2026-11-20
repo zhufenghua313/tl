@@ -267,7 +267,37 @@ function saveEvent(name, entries, auto, cb){
     })
     .catch(function(){el("msg").className="msg err";el("msg").textContent="网络异常——可再点保存按钮重试";});
 }
-function doSave(auto,cb){ saveEvent(DATA.cur, collectEntry(), auto, cb); }
+/* v4.62 径赛快录格式校验：首段1-2位；每个小数点后至少两位（不足补0）；至多三段
+   返回 ""=合规，否则返回警告文案 */
+function checkTimeFmt(val){
+  var t=String(val).replace(/[^0-9.]/g,"");
+  if(!t)return "";
+  if(String(val)!==t)return "成绩含非数字字符";
+  var p=t.split(".");
+  if(p.length>3)return "格式应为 9.66（秒）或 1.36.55（分.秒.厘秒），超了";
+  if(p[0].length<1||p[0].length>2)return "最前面（小数点前）只能一位或两位数";
+  for(var i=1;i<p.length;i++){
+    if(p[i].length<2)return "第"+i+"个小数点后不足两位——请补 0：秒/厘秒各占两位（如 1分3秒26＝1.03.26，9秒60＝9.60）";
+  }
+  return "";
+}
+/* 径赛全量校验：返回首个不合规行提示，全合规返回 "" */
+function checkEventFmt(evName,entries){
+  if(fieldEvent(evName))return ""; /* 田赛不校验（1.05 等数值无歧义） */
+  for(var i=0;i<entries.length;i++){
+    var v=entries[i].result;
+    if(v===""||v==null)continue;
+    var w=checkTimeFmt(v);
+    if(w)return "第"+(i+1)+"行 "+(entries[i].name||"")+" 的成绩「"+v+"」不规范："+w;
+  }
+  return "";
+}
+function doSave(auto,cb){
+  /* v4.62 保存前强制校验径赛格式——不合规当场警告并拒绝保存 */
+  var warn=checkEventFmt(DATA.cur,window.__list||[]);
+  if(warn){el("msg").className="msg err";el("msg").textContent="⚠ "+warn;return;}
+  saveEvent(DATA.cur, collectEntry(), auto, cb);
+}
 var __autoTimer=null;
 function autoSave(){ /* 输入变更后防抖 800ms 自动保存 */
   if(!DATA.cur)return;
@@ -370,6 +400,16 @@ el("resBody").addEventListener("change",function(inp){
   autoSave(); /* 格子改完（失焦/值变）即自动保存 */
 });
 el("btnSave").addEventListener("click",function(){ clearTimeout(__autoTimer); doSave(false); });
+/* v4.62 成绩框失焦即时校验（径赛）——录错马上提醒 */
+document.getElementById("resBody").addEventListener("focusout",function(ev){
+  var t=ev.target;
+  if(!t||!t.getAttribute||t.getAttribute("data-k")!=="result")return;
+  if(fieldEvent(DATA.cur))return; /* 田赛不校验 */
+  var v=t.value;
+  if(v===""||v==null)return;
+  var w=checkTimeFmt(v);
+  if(w){el("msg").className="msg err";el("msg").textContent="⚠ 「"+v+"」不规范："+w;}
+});
 
 el("btnWin").addEventListener("click",function(){
   var fd=new FormData();fd.append("meetStart",el("wStart").value);fd.append("publicityEnd",el("wEnd").value);
