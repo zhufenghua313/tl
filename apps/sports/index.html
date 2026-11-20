@@ -152,6 +152,20 @@
   </div>
 
   <div class="card">
+    <div class="sec"><span class="num">4½</span><h2>🏅 校记录</h2><span class="tail">成绩录入自动比对 · 破纪录须管理员确认后才加分</span></div>
+    <div class="note">项目名规则：「男子/女子 + 项目名」（如 男子100米、女子跳高、混合接力）——由场次名自动推导，也可手工填。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。录成绩时若优于这里的纪录，系统自动标「⚡待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分。</div>
+    <table id="recTbl" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px;">
+      <thead><tr style="background:#F0F4F9;"><th style="padding:6px 8px;border:1px solid #D8E0EC;">项目</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">纪录</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">保持者</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">日期</th><th style="padding:6px 8px;border:1px solid #D8E0EC;"></th></tr></thead>
+      <tbody id="recTbody"></tbody>
+    </table>
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+      <button class="btn ghost" id="btnRecAdd" type="button">＋ 加一条</button>
+      <button class="btn" id="btnRecSave" type="button">💾 保存校记录</button>
+      <span id="recMsg" style="color:#B03A2E;font-size:13px;"></span>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="sec"><span class="num">5</span><h2>时间窗</h2><span class="tail">需求第5条：报名锁定 / 录入窗口自动开关</span></div>
     <div class="grid">
       <div class="fld"><label>报名截止（逾期班级端自动锁定）</label><input type="datetime-local" id="inpEntryEnd"></div>
@@ -514,6 +528,44 @@ $("evBody").addEventListener("change",function(e){
     if(box) box.style.display=(t.value==="custom")?"block":"none";
   }
 });
+/* =====【v4.68】校记录管理 ===== */
+function recRowAdd(std,value,holder,date){
+  var tb=document.getElementById("recTbody");
+  var tr=document.createElement("tr");
+  tr.innerHTML='<td><input data-rk="std" value="'+(std||"")+'" placeholder="男子100米" style="width:95%;"></td>'
+    +'<td><input data-rk="value" value="'+(value||"")+'" placeholder="12.36 或 1.05" style="width:95%;"></td>'
+    +'<td><input data-rk="holder" value="'+(holder||"")+'" placeholder="姓名" style="width:95%;"></td>'
+    +'<td><input data-rk="date" value="'+(date||"")+'" placeholder="2025-04-10" style="width:95%;"></td>'
+    +'<td><button type="button" data-recdel style="color:#B03A2E;border:none;background:none;cursor:pointer;font-weight:bold;">✕</button></td>';
+  tb.appendChild(tr);
+}
+document.getElementById("btnRecAdd").addEventListener("click",function(){recRowAdd();});
+document.getElementById("recTbl").addEventListener("click",function(ev){
+  if(ev.target&&ev.target.hasAttribute("data-recdel"))ev.target.closest("tr").remove();
+});
+document.getElementById("btnRecSave").addEventListener("click",function(){
+  var items=[],rows=document.querySelectorAll("#recTbody tr");
+  rows.forEach(function(tr){
+    var g=function(k){var i=tr.querySelector('input[data-rk="'+k+'"]');return i?i.value.trim():"";};
+    if(g("std")&&g("value"))items.push({std:g("std"),value:g("value"),holder:g("holder"),date:g("date")});
+  });
+  var fd=new FormData();fd.append("items",JSON.stringify(items));
+  fetch("/soft/api/records-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
+    var m=document.getElementById("recMsg");
+    if(d.ok){m.style.color="#1E8449";m.textContent="✅ "+d.msg;fetchRecordsFill();}
+    else{m.textContent="❌ "+(d.msg||"保存失败");}
+    setTimeout(function(){document.getElementById("recMsg").textContent="";},4000);
+  }).catch(function(){document.getElementById("recMsg").textContent="网络异常，请重试";});
+});
+function fetchRecordsFill(){
+  fetch("/soft/api/records",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+    var tb=document.getElementById("recTbody");tb.innerHTML="";
+    var recs=(d&&d.records)||{};
+    Object.keys(recs).forEach(function(std){recRowAdd(std,recs[std].value,recs[std].holder,recs[std].date);});
+    if(!Object.keys(recs).length)recRowAdd();
+  }).catch(function(){});
+}
+fetchRecordsFill();
 document.addEventListener("input",updateOverview);
 document.addEventListener("change",updateOverview);
 
