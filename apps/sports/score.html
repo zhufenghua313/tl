@@ -214,6 +214,13 @@ function autoRank(){
     for(var k=i;k<=j;k++){ list[idxs[k].i].rank=rk; }
     i=j+1;
   }
+  if(quiet){ /* v4.63 安静模式：只实时刷新名次框的值，不重绘表格（不打断输入焦点） */
+    list.forEach(function(e,i){
+      var inp=document.querySelector('#resBody input[data-k="rank"][data-i="'+i+'"]');
+      if(inp)inp.value=e.rank||"";
+    });
+    return;
+  }
   renderEntry();
   el("msg").className="msg ok";
   el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"全量重算（同成绩并列，>8 名留空）——特殊情况（如跳高失败次数）可直接在名次格手工修改，改完点「保存（成绩+名次）」生效";
@@ -232,7 +239,10 @@ document.getElementById("resBody").addEventListener("keydown",function(ev){
     for(var r=0;r<rows.length;r++){ if(rows[r].contains(t)){cur=r;break;} }
     if(cur<0)return;
     var nxt=cur+((ev.key==="ArrowUp")?-1:1);
-    if(nxt<0||nxt>=rows.length)return;
+    if(nxt<0||nxt>=rows.length){ /* v4.63：最后一行成绩回车＝点一次自动名次 */
+      if(ev.key==="Enter"&&k==="result"){autoRank(true);autoSave();}
+      return;
+    }
     var inp=rows[nxt].querySelector('input[data-k="'+k+'"]');
     if(inp){inp.focus();if(inp.select)inp.select();}
   }
@@ -397,6 +407,7 @@ el("resBody").addEventListener("change",function(inp){
       return;
     }
   }
+  if(t.getAttribute("data-k")==="result")autoRank(true); /* v4.63：成绩一确定名次实时刷新 */
   autoSave(); /* 格子改完（失焦/值变）即自动保存 */
 });
 el("btnSave").addEventListener("click",function(){ clearTimeout(__autoTimer); doSave(false); });
