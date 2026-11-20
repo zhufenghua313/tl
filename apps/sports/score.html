@@ -191,7 +191,7 @@ function parseTime(str){
   if(p.length>=3)return parseFloat(p[0])*60+parseFloat(p[1]+"."+p[2]);
   return NaN;
 }
-function autoRank(){
+function autoRank(quiet){ /* v4.66 修复：补上 quiet 形参——v4.63 漏改导致实时排名从未生效 */
   collectEntry();
   var list=window.__list||[];
   var dir=""; /* v4.65：排名方向优先用 M6 赛程里配置的场次规则 */
