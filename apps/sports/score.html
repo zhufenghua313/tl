@@ -159,7 +159,7 @@ function renderEntry(){
   var html="";
   list.forEach(function(e,i){
     html+='<tr><td class="g-no">'+esc(e.no||"道"+(i+1))+'</td><td>'+esc(e.name)+'</td>'
-      +'<td><input data-i="'+i+'" data-k="result" value="'+esc(e.result)+'" placeholder="成绩"'+RO+'></td>'
+      +'<td><input data-i="'+i+'" data-k="result" value="'+esc(e.result)+'" placeholder="'+(fieldEvent(DATA.cur)?'如 1.05（米）':'如 9.66 或 1.36.55')+'"'+RO+'></td>'
       +'<td><input class="rk" data-i="'+i+'" data-k="rank" value="'+esc(e.rank)+'" inputmode="numeric" maxlength="1"'+RO+'></td>'
       +'<td><input data-i="'+i+'" data-k="note" value="'+esc(e.note)+'" list="noteOpts" placeholder="正常"'+RO+'>'+(((CAN_CONFIRM)&&/犯规|取消/.test(String(e.note||""))&&!/已确认/.test(String(e.note||"")))?'<button type="button" data-conf="'+i+'" style="margin-left:6px;background:linear-gradient(135deg,#E8BC4F,#f0d070);color:#14213D;border:none;border-radius:7px;font-size:12px;padding:4px 8px;cursor:pointer;font-weight:600;font-family:inherit">✅ 犯规确认</button>':'')+'</td></tr>';
   });
