@@ -184,18 +184,17 @@ function autoRank(){
   });
   if(!idxs.length){ el("msg").className="msg err"; el("msg").textContent="先填成绩再自动名次"; return; }
   idxs.sort(function(a,b){ return dir==="desc" ? b.v-a.v : a.v-b.v; });
-  idxs.forEach(function(o){ if(!(list[o.i].rank||"").trim()) list[o.i].__auto=null; });
   var i=0;
   while(i<idxs.length){
     var j=i;
     while(j+1<idxs.length && Math.abs(idxs[j+1].v-idxs[i].v)<1e-9) j++;
     var rk=(i+1)<=8?String(i+1):"";
-    for(var k=i;k<=j;k++){ var o=idxs[k]; if(!(list[o.i].rank||"").trim()) list[o.i].rank=rk; }
+    for(var k=i;k<=j;k++){ list[idxs[k].i].rank=rk; }
     i=j+1;
   }
   renderEntry();
   el("msg").className="msg ok";
-  el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"自动生成（已有手工名次已保留，同成绩并列，>8 名留空）——可继续手工调整后保存";
+  el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"全量重算（同成绩并列，>8 名留空）——特殊情况（如跳高失败次数）可手工调整后保存";
 }
 el("btnRank").addEventListener("click",autoRank);
 
