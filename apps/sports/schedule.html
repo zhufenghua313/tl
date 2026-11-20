@@ -102,7 +102,9 @@ function render(){
       +'<button type="button" data-daydel="'+di+'" style="color:#FBB">删日</button></div></div><div class="day-body">';
     day.items.forEach(function(it,ii){
       html+='<div class="item"><div class="no">'+(ii+1)+'</div>'
-        +'<div style="flex:1;min-width:0"><div class="name">'+esc(it.name)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="name">'+esc(it.name)
+        +(it.dir==="desc"?' <span style="color:#E8BC4F;font-size:12px" title="数值大者优">[大者优]</span>':(it.dir==="asc"?' <span style="color:#7FB3D5;font-size:12px" title="数值小者优">[小者优]</span>':''))
+        +'</div>'
         +(it.remark?'<div class="remark">'+esc(it.remark)+'</div>':'')
         +'</div><div class="ops">'
         +'<button type="button" data-up="'+di+'_'+ii+'" '+(ii===0?"disabled":"")+'>↑</button>'
@@ -196,6 +198,8 @@ el("days").addEventListener("click",function(e){
     d2.name=nn.trim().slice(0,40);
     var rr=prompt("备注（可空，60字内）：",d2.remark||"");
     if(rr!==null)d2.remark=rr.trim().slice(0,60);
+    var dr=prompt("排名规则（成绩录入页的名次方向）：\n留空＝按项目名自动判断（跳高/跳远/铅球等田赛数值大者优，跑步等径赛数值小者优）\n输 1＝数值小者优（跑步等径赛）\n输 2＝数值大者优（跳高/跳远/铅球等田赛）：",d2.dir==="asc"?"1":(d2.dir==="desc"?"2":""));
+    if(dr!==null){d2.dir=(dr.trim()==="1")?"asc":((dr.trim()==="2")?"desc":"");}
     render();return;
   }
   if(t.hasAttribute("data-del")){
@@ -220,7 +224,9 @@ el("days").addEventListener("click",function(e){
     var di6=+t.getAttribute("data-adddayitem");
     var nn2=prompt("新场次名：","");
     if(nn2===null||!nn2.trim())return;
-    DATA.days[di6].items.push({name:nn2.trim().slice(0,40),remark:""});
+    var dr2=prompt("排名规则（成绩录入页的名次方向）：\n留空＝按项目名自动判断（跳高/跳远/铅球等田赛数值大者优，跑步等径赛数值小者优）\n输 1＝数值小者优（跑步等径赛）\n输 2＝数值大者优（跳高/跳远/铅球等田赛）：","");
+    var dir2=(dr2===null||dr2.trim()==="")?"":((dr2.trim()==="1")?"asc":((dr2.trim()==="2")?"desc":""));
+    DATA.days[di6].items.push({name:nn2.trim().slice(0,40),remark:"",dir:dir2});
     render();return;
   }
 });
