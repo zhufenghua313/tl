@@ -94,7 +94,7 @@
 <script>
 function el(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-var DATA={sched:null,numbers:null,results:null,cur:null,myRole:""};
+var DATA={sched:null,numbers:null,cur:null,myRole:"",myName:""};
 var CN=["","一","二","三","四","五","六"];
 var GRADE_MAP={"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
 function gradeOf(cn){for(var ch of String(cn)){if(GRADE_MAP[ch])return GRADE_MAP[ch];}return 0;}
@@ -239,12 +239,12 @@ function autoSave(){ /* 输入变更后防抖 800ms 自动保存 */
 function confirmFoul(i){
   var list=window.__list||[],e=list[i];
   if(!e)return;
-  e.note=String(e.note||"")+"（已确认）";
+  e.note=String(e.note||"")+"（已确认@"+(DATA.myName||"管理员")+"）";
   e.rank="";
   renderEntry();
   doSave(false,function(){
     el("msg").className="msg ok";
-    el("msg").textContent="✅ 已确认「"+e.note+"」——成绩保留但退出排名（得分为0）；点错可把备注改回并重新自动名次";
+    el("msg").textContent="✅ 已确认「"+e.note+"」——成绩保留但退出排名（得分为0），确认人可从备注查看；有异议联系该管理员；点错可把备注改回并重新自动名次";
   });
 }
 el("resBody").addEventListener("click",function(ev){
@@ -263,7 +263,8 @@ el("resBody").addEventListener("change",function(inp){
         return;
       }
       if(nt.indexOf("已确认")>=0){
-        list[i].rank="";list[i].note=nt;
+        if(nt.indexOf("@")<0)nt=nt+"（已确认@"+(DATA.myName||"管理员")+"）";
+        t.value=nt;list[i].rank="";list[i].note=nt;
         var cell=document.querySelector('.rk[data-i="'+i+'"]');if(cell)cell.value="";
         autoSave();
         el("msg").className="msg ok";el("msg").textContent="已确认「"+nt+"」——退出排名（得分为0）";
@@ -304,6 +305,7 @@ Promise.all([
 ]).then(function(rs){
   var me=rs[0];
   DATA.myRole=me&&me.ok?me.role:"";
+  DATA.myName=me&&me.ok?(me.username||""):"";
   DATA.sched=rs[2].schedule||{days:[]};
   DATA.numbers=rs[3].numbers||{};
   DATA.results=rs[4].results||{};
