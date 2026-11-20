@@ -219,6 +219,24 @@ function autoRank(){
   el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"全量重算（同成绩并列，>8 名留空）——特殊情况（如跳高失败次数）可直接在名次格手工修改，改完点「保存（成绩+名次）」生效";
 }
 el("btnRank").addEventListener("click",autoRank);
+/* v4.60 成绩/名次框：回车或 ↓ 跳下一行同列（↑ 上一行），首尾行不动 */
+document.getElementById("resBody").addEventListener("keydown",function(ev){
+  var t=ev.target;
+  if(!t||!t.getAttribute||!t.hasAttribute("data-k"))return;
+  var k=t.getAttribute("data-k");
+  if(k!=="result"&&k!=="rank")return;
+  if(ev.key==="Enter"||ev.key==="ArrowDown"||ev.key==="ArrowUp"){
+    ev.preventDefault();
+    var rows=this.querySelectorAll("tr");
+    var cur=-1;
+    for(var r=0;r<rows.length;r++){ if(rows[r].contains(t)){cur=r;break;} }
+    if(cur<0)return;
+    var nxt=cur+((ev.key==="ArrowUp")?-1:1);
+    if(nxt<0||nxt>=rows.length)return;
+    var inp=rows[nxt].querySelector('input[data-k="'+k+'"]');
+    if(inp){inp.focus();if(inp.select)inp.select();}
+  }
+});
 document.getElementById("foulCard").addEventListener("click",function(ev){
   var t=ev.target;
   if(t&&t.getAttribute&&t.hasAttribute("data-fev"))confirmFoulEvent(t.getAttribute("data-fev"),parseInt(t.getAttribute("data-fidx"),10));
