@@ -436,14 +436,13 @@ function save(){
   c.meta.exportedAt=new Date().toISOString();
   try{
     localStorage.setItem(LS_KEY,JSON.stringify(c));
-  }catch(e){
-    msg.className="err"; msg.textContent="❌ 本机存储失败："+e.message; return;
-  }
-  msg.className="ok";
-  msg.innerHTML="✅ 已保存到本机（localStorage）"+(v.warns.length?'<br>⚠ 提醒：'+esc(v.warns.join("；")):"");
-  var t=new Date();
-  $("savedAt").textContent="上次保存："+t.toLocaleString("zh-CN");
-  toast("已保存到本机 ✅");
+  }catch(e){ /* 本机存储失败不拦——云端为准 */ }
+  /* 【v4.69】配置双保险：云端为主（换浏览器/换电脑都在），本机为辅 */
+  var fd=new FormData();fd.append("config",JSON.stringify(c));
+  fetch("/soft/api/config-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
+    if(d.ok){ msg.className="ok"; msg.innerHTML="✅ 已保存到云端（换浏览器/换电脑都在）"+(v.warns.length?'<br>⚠ 提醒：'+esc(v.warns.join("；")):""); $("savedAt").textContent="上次保存："+new Date().toLocaleString("zh-CN"); toast("已保存 ✅"); }
+    else{ msg.className="err"; msg.textContent="❌ 云端保存失败："+(d.msg||"未知错误")+"（本机已存，刷新后可能回退）"; }
+  }).catch(function(){ msg.className="err"; msg.textContent="❌ 网络异常，云端未保存（本机已存）"; });
 }
 function exportJson(){
   var c=collect(), v=validate(c);
@@ -571,14 +570,28 @@ document.addEventListener("change",updateOverview);
 
 /* ---------- 启动 ---------- */
 fillGradeCount();
-var saved=null;
-try{ saved=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ saved=null; }
-if(saved&&saved.school){ render(saved); }
-else{ render(defaultConfig()); }
 var msgEl=$("msg");
-msgEl.className="ok";
-msgEl.innerHTML="ℹ️ 已载入"+(saved&&saved.meta&&saved.meta.exportedAt?"上次保存的配置":"默认配置（2025年真实班数）")+"。改完记得保存。";
-$("savedAt").textContent=saved&&saved.meta&&saved.meta.exportedAt?("上次保存："+new Date(saved.meta.exportedAt).toLocaleString("zh-CN")):"尚未保存过";
+/* 【v4.69】装载优先级：云端 → 本机 → 默认（云端为准，换浏览器不再丢配置） */
+fetch("/soft/api/config",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+  var cloud=d&&d.config, local=null;
+  try{ local=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ local=null; }
+  /* 云端和本机都有：取更新的 */
+  var pick=null, src="";
+  if(cloud&&cloud.school&&local&&local.school){
+    var ct=cloud.meta&&cloud.meta.exportedAt?Date.parse(cloud.meta.exportedAt):0;
+    var lt=local.meta&&local.meta.exportedAt?Date.parse(local.meta.exportedAt):0;
+    pick=ct>=lt?cloud:local; src=ct>=lt?"云端":"本机";
+  }else if(cloud&&cloud.school){ pick=cloud; src="云端"; }
+  else if(local&&local.school){ pick=local; src="本机"; }
+  if(pick){ render(pick); msgEl.className="ok"; msgEl.innerHTML="ℹ️ 已载入"+src+"保存的配置。改完记得保存。"; $("savedAt").textContent=pick.meta&&pick.meta.exportedAt?("上次保存："+new Date(pick.meta.exportedAt).toLocaleString("zh-CN")):"尚未保存过"; }
+  else{ render(defaultConfig()); msgEl.className="ok"; msgEl.innerHTML="ℹ️ 已载入默认配置（2025年真实班数）。改完记得保存。"; $("savedAt").textContent="尚未保存过"; }
+}).catch(function(){
+  /* API 不通退本机/默认 */
+  var saved=null;
+  try{ saved=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ saved=null; }
+  if(saved&&saved.school){ render(saved); msgEl.innerHTML="ℹ️ 已载入本机保存的配置。"; }
+  else{ render(defaultConfig()); msgEl.innerHTML="ℹ️ 已载入默认配置（2025年真实班数）。"; }
+});
 
 /* v1.2 退出登录（站长 14:15 指正：M1 没有退出按钮） */
 document.getElementById("btnOut").addEventListener("click",function(){
