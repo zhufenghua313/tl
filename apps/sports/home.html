@@ -143,7 +143,7 @@ el("btnPw").addEventListener("click",function(){
   m.style.color="#B03A2E";
   if(!o||!n||!n2){m.textContent="三个框都要填";return;}
   if(n!==n2){m.textContent="两次新密码不一致";return;}
-  if(n.length<2){m.textContent="新密码至少 2 位（建议 6 位以上）";return;}
+  if(n.length<1){m.textContent="新密码至少 1 位（建议 6 位以上）";return;}
   m.style.color="#5B6577";m.textContent="⏳ 正在保存…";
   var fd=new FormData();fd.append("oldpw",o);fd.append("newpw",n);
   fetch("/soft/api/my-pass",{method:"POST",body:fd})
