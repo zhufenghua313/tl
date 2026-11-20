@@ -86,7 +86,7 @@
     <h2>✍️ <span id="curEv"></span></h2>
     <table class="res"><thead><tr><th style="width:60px">号码/道</th><th>姓名/班级</th><th style="width:110px">成绩</th><th style="width:60px">名次</th><th>备注</th></tr></thead><tbody id="resBody"></tbody></table>
     <div class="bar"><select id="rkDir" style="background:#1B2A45;color:#E8BC4F;border:1.5px solid rgba(232,188,79,.45);border-radius:10px;padding:11px 10px;font-size:14px;font-family:inherit;"><option value="auto">方向：按项目名判断</option><option value="desc">数值大者优（跳高/跳远等田赛）</option><option value="asc">数值小者优（跑步等径赛）</option></select> <button class="btn-gold" id="btnRank" type="button">🏆 自动名次</button> <button class="btn-gold" id="btnSave" type="button">💾 手动保存（一般不用点，改完自动保存）</button><span class="msg" id="msg"></span></div>
-    <div class="hint">径赛成绩填时间（如 9.8 秒）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次可点「🏆 自动名次」按成绩自动生成（同成绩并列，如 1、1、3），生成后仍可手工修改——跳高同高度按失败次数比较名次时，请手工调整；方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好），也可手动指定。备注默认「正常」，可选「犯规取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」重新排名即恢复。所有项目通用。权限：管理员/总管理员可确认犯规、核实后也可取消犯规（确认前、确认后都可以取消）——取消后犯规记录从各页面清除，重新自动名次即恢复名次得分；成绩录入员可录成绩但不能确认；班主任只读。</div>
+    <div class="hint">径赛成绩可用快录格式：9.66＝9秒66，1.36.55＝1分36秒55（自动按分.秒.厘秒换算排序）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次可点「🏆 自动名次」按成绩自动生成（同成绩并列，如 1、1、3），生成后仍可手工修改——跳高同高度按失败次数比较名次时，请手工调整；方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好），也可手动指定。备注默认「正常」，可选「犯规取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」重新排名即恢复。所有项目通用。权限：管理员/总管理员可确认犯规、核实后也可取消犯规（确认前、确认后都可以取消）——取消后犯规记录从各页面清除，重新自动名次即恢复名次得分；成绩录入员可录成绩但不能确认；班主任只读。</div>
 <div class="card" id="foulCard" style="margin-top:12px">
   <h2 style="margin:0 0 6px">🚩 犯规看板 <span style="font-size:12.5px;color:#9FB2D6;font-weight:400">—— 待确认（管理员可确认）· 已确认（全员公示）</span></h2>
   <div id="foulPending"></div>
@@ -180,6 +180,17 @@ function collectEntry(){
    方向 auto=按项目名判断（跳高/跳远/铅球等田赛大者优，跑步等径赛小者优）；
    跳高同高度失败次数比较属特殊规则——生成后手工微调（站长 09:08 需求） */
 function fieldEvent(name){ return /跳高|跳远|铅球|垒球|实心球|沙包|标枪|掷|投掷|立定/.test(String(name)); }
+/* v4.56 径赛快录解析：9.66=9秒66；1.36.55=1分36秒55 → 统一换算成总秒数参与排序
+   （田赛 desc 不走此函数——1.05 米等高度远度仍按 parseFloat 原值） */
+function parseTime(str){
+  var t=String(str).replace(/[^0-9.]/g,"");
+  if(!t)return NaN;
+  var p=t.split(".");
+  if(p.length===1)return parseFloat(p[0]);
+  if(p.length===2)return parseFloat(p[0]+"."+p[1]);
+  if(p.length>=3)return parseFloat(p[0])*60+parseFloat(p[1]+"."+p[2]);
+  return NaN;
+}
 function autoRank(){
   collectEntry();
   var list=window.__list||[];
@@ -190,7 +201,7 @@ function autoRank(){
     var nt=String(e.note||"");
     if(nt.indexOf("已确认")>=0){ list[i].rank=""; return; } /* v4.50：仅已确认的犯规/取消退出排名 */
     if(/^(犯规|取消资格)$/.test(nt)){ /* 待确认：照常排名得分，提示管理员处理 */ }
-    var v=parseFloat(String(e.result).replace(/[^0-9.]/g,""));
+    var v=(dir==="desc")?parseFloat(String(e.result).replace(/[^0-9.]/g,"")):parseTime(e.result); /* v4.56：径赛按快录格式换算秒数 */
     if(e.result!=="" && e.result!=null && !isNaN(v) && isFinite(v)) idxs.push({i:i,v:v});
   });
   if(!idxs.length){ el("msg").className="msg err"; el("msg").textContent="先填成绩再自动名次"; return; }
