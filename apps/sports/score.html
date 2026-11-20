@@ -86,7 +86,12 @@
     <h2>✍️ <span id="curEv"></span></h2>
     <table class="res"><thead><tr><th style="width:60px">号码/道</th><th>姓名/班级</th><th style="width:110px">成绩</th><th style="width:60px">名次</th><th>备注</th></tr></thead><tbody id="resBody"></tbody></table>
     <div class="bar"><select id="rkDir" style="background:#1B2A45;color:#E8BC4F;border:1.5px solid rgba(232,188,79,.45);border-radius:10px;padding:11px 10px;font-size:14px;font-family:inherit;"><option value="auto">方向：按项目名判断</option><option value="desc">数值大者优（跳高/跳远等田赛）</option><option value="asc">数值小者优（跑步等径赛）</option></select> <button class="btn-gold" id="btnRank" type="button">🏆 自动名次</button> <button class="btn-gold" id="btnSave" type="button">💾 手动保存（一般不用点，改完自动保存）</button><span class="msg" id="msg"></span></div>
-    <div class="hint">径赛成绩填时间（如 9.8 秒）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次可点「🏆 自动名次」按成绩自动生成（同成绩并列，如 1、1、3），生成后仍可手工修改——跳高同高度按失败次数比较名次时，请手工调整；方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好），也可手动指定。备注默认「正常」，可选「犯规 / 取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」重新排名即恢复。所有项目通用。权限：管理员/总管理员可确认犯规；成绩录入员可录成绩但不能确认；班主任只读。</div><datalist id="noteOpts" style="display:none"><option value="正常"></option><option value="犯规"></option><option value="取消资格"></option></datalist>
+    <div class="hint">径赛成绩填时间（如 9.8 秒）；田赛填高度/远度（如 1.05 米）；接力按班级录。名次可点「🏆 自动名次」按成绩自动生成（同成绩并列，如 1、1、3），生成后仍可手工修改——跳高同高度按失败次数比较名次时，请手工调整；方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好），也可手动指定。备注默认「正常」，可选「犯规 / 取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」重新排名即恢复。所有项目通用。权限：管理员/总管理员可确认犯规；成绩录入员可录成绩但不能确认；班主任只读。</div>
+<div class="card" id="foulCard" style="margin-top:12px">
+  <h2 style="margin:0 0 6px">🚩 犯规看板 <span style="font-size:12.5px;color:#9FB2D6;font-weight:400">—— 待确认（管理员可确认）· 已确认（全员公示）</span></h2>
+  <div id="foulPending"></div>
+  <div id="foulDone" style="margin-top:10px"></div>
+</div><datalist id="noteOpts" style="display:none"><option value="正常"></option><option value="犯规"></option><option value="取消资格"></option></datalist>
   </div>
 
   <footer>运动会管理系统 · M7 成绩录入 ｜ 手搓 v1 ｜ 成绩存云端，公示期内录入员可改<br>时间窗控制：运动会开始 → 公示期结束（需求第5条）</footer>
@@ -203,6 +208,10 @@ function autoRank(){
   el("msg").textContent="名次已按"+(dir==="desc"?"数值大者优":"数值小者优")+"全量重算（同成绩并列，>8 名留空）——特殊情况（如跳高失败次数）可直接在名次格手工修改，改完点「保存（成绩+名次）」生效";
 }
 el("btnRank").addEventListener("click",autoRank);
+document.getElementById("foulCard").addEventListener("click",function(ev){
+  var t=ev.target;
+  if(t&&t.getAttribute&&t.hasAttribute("data-fev"))confirmFoulEvent(t.getAttribute("data-fev"),parseInt(t.getAttribute("data-fidx"),10));
+});
 
 el("evList").addEventListener("click",function(e){
   var t=e.target;
@@ -214,9 +223,8 @@ el("evList").addEventListener("click",function(e){
 });
 
 /* v4.48 保存抽公共函数（auto=true 时为自动保存——站长 09:12 需求：改完自动保存更方便） */
-function doSave(auto,cb){
-  var list=collectEntry();
-  var fd=new FormData();fd.append("event",DATA.cur);fd.append("entries",JSON.stringify(list));
+function saveEvent(name, entries, auto, cb){
+  var fd=new FormData();fd.append("event",name);fd.append("entries",JSON.stringify(entries));
   fetch("/soft/api/result-save",{method:"POST",body:fd})
     .then(function(r){return r.json()})
     .then(function(d){
@@ -224,16 +232,57 @@ function doSave(auto,cb){
       var stamp=" "+("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2)+":"+("0"+t.getSeconds()).slice(-2);
       el("msg").className="msg "+(d.ok?"ok":"err");
       el("msg").textContent=d.ok?((auto?"✅ 已自动保存":"✅ 已保存")+stamp+"（成绩+名次）"):(d.msg||"保存失败");
-      if(d.ok&&DATA.results){DATA.results[DATA.cur]={entries:list,updatedAt:new Date().toISOString(),by:"我"};renderEvList();}
+      if(d.ok&&DATA.results){DATA.results[name]={entries:entries,updatedAt:new Date().toISOString(),by:"我"};renderEvList();renderFoulBoard();}
       if(cb)cb(d);
     })
     .catch(function(){el("msg").className="msg err";el("msg").textContent="网络异常——可再点保存按钮重试";});
 }
+function doSave(auto,cb){ saveEvent(DATA.cur, collectEntry(), auto, cb); }
 var __autoTimer=null;
 function autoSave(){ /* 输入变更后防抖 800ms 自动保存 */
   if(!DATA.cur)return;
   clearTimeout(__autoTimer);
   __autoTimer=setTimeout(function(){doSave(true);},800);
+}
+function esc53(x){return esc(x);}
+function renderFoulBoard(){
+  var pend=[],done=[];
+  Object.keys(DATA.results||{}).forEach(function(evName){
+    var arr=(DATA.results[evName]||{}).entries||[];
+    arr.forEach(function(e,idx){
+      var nt=String(e.note||"");
+      if(nt.indexOf("犯规")<0&&nt.indexOf("取消")<0)return;
+      var info={ev:evName,idx:idx,no:e.no||"—",name:e.name||"—",result:e.result||"—",note:nt};
+      if(nt.indexOf("已确认")>=0)done.push(info); else pend.push(info);
+    });
+  });
+  var CAN_CONFIRM=(DATA.myRole==="admin"||DATA.myRole==="master");
+  var h='<div style="font-size:13.5px;font-weight:600;margin-bottom:4px">⏳ 待确认（'+pend.length+'）——标记后仍照常排名记分</div>';
+  if(pend.length){
+    h+='<table class="res" style="font-size:13px"><thead><tr><th>场次/项目</th><th>号码</th><th>姓名</th><th>成绩</th><th>标记</th>'+(CAN_CONFIRM?'<th>操作</th>':'')+'</tr></thead><tbody>';
+    pend.forEach(function(f){
+      h+='<tr><td>'+esc53(f.ev)+'</td><td>'+esc53(f.no)+'</td><td>'+esc53(f.name)+'</td><td>'+esc53(f.result)+'</td><td>'+esc53(f.note)+'</td>'
+       +(CAN_CONFIRM?'<td><button type="button" data-fev="'+esc53(f.ev)+'" data-fidx="'+f.idx+'" style="background:linear-gradient(135deg,#E8BC4F,#f0d070);color:#14213D;border:none;border-radius:7px;font-size:12px;padding:4px 10px;cursor:pointer;font-weight:600;font-family:inherit">✅ 确认</button></td>':'')+'</tr>';
+    });
+    h+='</tbody></table>';
+  } else h+='<div class="empty" style="padding:8px">暂无待确认犯规</div>';
+  h+='<div style="font-size:13.5px;font-weight:600;margin:10px 0 4px">📢 已确认公示（'+done.length+'）——退出排名·得分为 0·确认管理员见备注</div>';
+  if(done.length){
+    h+='<table class="res" style="font-size:13px"><thead><tr><th>场次/项目</th><th>号码</th><th>姓名</th><th>成绩</th><th>确认记录</th></tr></thead><tbody>';
+    done.forEach(function(f){ h+='<tr><td>'+esc53(f.ev)+'</td><td>'+esc53(f.no)+'</td><td>'+esc53(f.name)+'</td><td>'+esc53(f.result)+'</td><td>'+esc53(f.note)+'</td></tr>'; });
+    h+='</tbody></table>';
+  } else h+='<div class="empty" style="padding:8px">暂无已确认犯规</div>';
+  el("foulPending").innerHTML=h;
+}
+function confirmFoulEvent(evName, idx){
+  var rec=DATA.results[evName];if(!rec)return;
+  var e=rec.entries[idx];if(!e)return;
+  e.note=String(e.note||"")+"（已确认@"+(DATA.myName||"管理员")+"）";
+  e.rank="";
+  renderFoulBoard();
+  saveEvent(evName, rec.entries, false, function(d){
+    if(d.ok){el("msg").className="msg ok";el("msg").textContent="✅ 已确认犯规「"+e.name+"」@"+evName+"——已退出排名（0分），确认人 "+(DATA.myName||"管理员")+" 已公开记录";}
+  });
 }
 /* v4.50 两段式犯规确认：标记（班主任）→照常排名得分；管理员点「✅ 犯规确认」→退出排名0分 */
 function confirmFoul(i){
@@ -309,6 +358,7 @@ Promise.all([
   DATA.sched=rs[2].schedule||{days:[]};
   DATA.numbers=rs[3].numbers||{};
   DATA.results=rs[4].results||{};
+  setTimeout(renderFoulBoard,0);
   var wins=rs[4].windows;
   DATA.myRole=(rs[0]&&rs[0].ok)?"admin":"";
   if(rs[1]&&rs[1].ok){ /* 管理员才能读账号API成功——用它当管理员判定 */
