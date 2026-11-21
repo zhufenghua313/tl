@@ -86,7 +86,7 @@
     <h2>✍️ <span id="curEv"></span></h2>
     <table class="res"><thead><tr><th style="width:60px">号码/道</th><th>姓名/班级</th><th style="width:110px">成绩</th><th style="width:60px">名次</th><th>备注</th></tr></thead><tbody id="resBody"></tbody></table>
     <div class="bar"><button class="btn-gold" id="btnSave" type="button">💾 手动保存（一般不用点，改完自动保存）</button><span class="msg" id="msg"></span></div>
-    <div class="hint">径赛成绩可用快录格式：9.66＝9秒66，1.36.55＝1分36秒55（自动按分.秒.厘秒换算排序）。注意：秒和厘秒各占两位、不足补 0——如 1分3秒26 要写 1.03.26（写 1.3.26 会被当成 1分03秒26）；田赛填高度/远度（如 1.05 米）；接力按班级录；混合接力（预决赛）3-5 年级每班自动参加（不用报名），班名即运动员名。破纪录：成绩优于校记录自动标「⚡待确认」——管理员点「🏅 破纪录确认」后更新校记录并计加分，确认前不加分。名次随成绩自动生成（录完即排，同成绩并列，如 1、1、3），特殊情况（如跳高同高度比失败次数）仍可手工改名次——跳高同高度按失败次数比较名次时，请手工调整；排名方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好）——特殊场次可在 M6 赛程页编辑该场次时指定。备注默认「正常」，可选「犯规取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」名次自动恢复。所有项目通用。权限：管理员/总管理员可确认犯规、核实后也可取消犯规（确认前、确认后都可以取消）——取消后犯规记录从各页面清除，名次自动恢复；成绩录入员可录成绩但不能确认；班主任只读。</div>
+    <div class="hint">径赛成绩可用快录格式：9.66＝9秒66，1.36.55＝1分36秒55（自动按分.秒.厘秒换算排序）。注意：秒和厘秒各占两位、不足补 0——如 1分3秒26 要写 1.03.26（写 1.3.26 会被当成 1分03秒26）；田赛填高度/远度（如 1.05 米）；接力按班级录；混合接力（预决赛）3-5 年级每班自动参加（不用报名），班名即运动员名。破纪录（v4.70 镇记录）：成绩优于镇记录自动标「⚡破镇纪录待确认」（橙底醒目）——管理员点「🏅 破纪录确认」后更新镇记录并计加分，确认前不加分。镇记录在基础配置页「🏘️ 镇记录」卡片录入。名次随成绩自动生成（录完即排，同成绩并列，如 1、1、3），特殊情况（如跳高同高度比失败次数）仍可手工改名次——跳高同高度按失败次数比较名次时，请手工调整；排名方向默认按项目名判断（跳高/跳远等田赛数值越大越好，跑步等径赛数值越小越好）——特殊场次可在 M6 赛程页编辑该场次时指定。备注默认「正常」，可选「犯规取消资格」——标记后暂时仍照常排名记分，管理员点「✅ 犯规确认」后该运动员才退出排名（成绩保留、得分为 0）；改回「正常」名次自动恢复。所有项目通用。权限：管理员/总管理员可确认犯规、核实后也可取消犯规（确认前、确认后都可以取消）——取消后犯规记录从各页面清除，名次自动恢复；成绩录入员可录成绩但不能确认；班主任只读。</div>
 <div class="card" id="foulCard" style="margin-top:12px">
   <h2 style="margin:0 0 6px">🚩 犯规看板 <span style="font-size:12.5px;color:#9FB2D6;font-weight:400">—— 待确认（管理员可确认）· 已确认（全员公示）</span></h2>
   <div id="foulPending"></div>
@@ -99,7 +99,7 @@
 <script>
 function el(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-var DATA={sched:null,numbers:null,cur:null,myRole:"",myName:""};
+var DATA={sched:null,numbers:null,cur:null,myRole:"",myName:"",records:{},recordsTown:{}}; /* v4.70：镇记录表随装 */
 var CN=["","一","二","三","四","五","六"];
 var GRADE_MAP={"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
 function gradeOf(cn){for(var ch of String(cn)){if(GRADE_MAP[ch])return GRADE_MAP[ch];}return 0;}
@@ -109,57 +109,76 @@ function stdEvent(evName){
   var m=String(evName).match(/^(.*?)年级(男子|女子)?(.+?)(预决赛|决赛)?$/);
   return m?((m[2]||"")+m[3]):String(evName).replace(/预决赛|决赛/g,"");
 }
-/* 【v4.68】破纪录比对：优于校记录 → recPending=1（⚡待确认）；径赛小者优、田赛大者优 */
+/* 【v4.70】破纪录双表比对：优于镇记录 → recPending=1+recLevel="town"（优先）；
+   优于校记录 → recPending=1+recLevel="school"；径赛小者优、田赛大者优 */
 function checkRec(list,evName){
-  var rec=(DATA.records||{})[stdEvent(evName)];
-  if(!rec||!rec.value)return;
-  var fEv=fieldEvent(stdEvent(evName));
-  var recV=fEv?parseFloat(String(rec.value).replace(/[^0-9.]/g,"")):parseTime(rec.value);
-  if(isNaN(recV)||!isFinite(recV))return;
+  var std=stdEvent(evName);
+  var fEv=fieldEvent(std);
+  var num=function(s){return fEv?parseFloat(String(s).replace(/[^0-9.]/g,"")):parseTime(s);};
+  var rec=(DATA.records||{})[std];
+  var town=(DATA.recordsTown||{})[std];
+  var recV=rec&&rec.value?num(rec.value):NaN;
+  var townV=town&&town.value?num(town.value):NaN;
+  if((isNaN(recV)||!isFinite(recV))&&(isNaN(townV)||!isFinite(townV)))return;
   list.forEach(function(e){
     if(e.recPending===0)return;
     if(!e.result)return;
-    var v=fEv?parseFloat(String(e.result).replace(/[^0-9.]/g,"")):parseTime(e.result);
+    var v=num(e.result);
     if(isNaN(v)||!isFinite(v))return;
-    e.recPending=(fEv?(v>recV):(v<recV))?1:0;
+    var beatTown=!isNaN(townV)&&isFinite(townV)&&(fEv?v>townV:v<townV);
+    var beatSch=!isNaN(recV)&&isFinite(recV)&&(fEv?v>recV:v<recV);
+    if(beatTown){e.recPending=1;e.recLevel="town";}
+    else if(beatSch){e.recPending=1;e.recLevel="school";}
+    else{e.recPending=undefined;delete e.recLevel;} /* 成绩不再破纪录 → 恢复普通状态 */
   });
 }
-/* 【v4.68】徽章实时刷新（quiet 模式配套：不重绘，只更新成绩格旁的 ⚡/🏅 标记） */
+/* 【v4.68】徽章实时刷新（quiet 模式配套：不重绘，只更新成绩格旁的 ⚡/🏅 标记）
+   【v4.70】镇记录徽章：⚡破镇纪录（橙红更醒目）/ 校记录仍 ⚡待确认 */
 function refreshRecBadges(list){
   list.forEach(function(e,i){
     var inp=document.querySelector('#resBody input[data-k="result"][data-i="'+i+'"]');
     if(!inp)return;
     var td=inp.closest("td");if(!td)return;
     var old=td.querySelector(".recbadge");if(old)old.remove();
-    var confirmed=/破纪录|破记录/.test(String(e.note||""))&&String(e.note||"").indexOf("已确认")>=0;
+    var note=String(e.note||"");
+    var confirmed=/破.{0,2}纪录|破.{0,2}记录/.test(note)&&note.indexOf("已确认")>=0;
+    var isTown=note.indexOf("破镇纪录")>=0||e.recLevel==="town";
     if(e.recPending===1){
       var sp=document.createElement("span");sp.className="recbadge";sp.setAttribute("data-i",i);
-      sp.style.cssText="margin-left:5px;color:#E67E22;font-weight:bold;font-size:12.5px";
-      sp.textContent="⚡待确认";td.appendChild(sp);
+      sp.style.cssText=isTown
+        ?"margin-left:5px;color:#C0392B;font-weight:bold;font-size:12.5px;background:#FDEBD0;padding:1px 5px;border-radius:4px"
+        :"margin-left:5px;color:#E67E22;font-weight:bold;font-size:12.5px";
+      sp.textContent=isTown?"⚡破镇纪录待确认":"⚡待确认";td.appendChild(sp);
     }else if(confirmed){
       var sp2=document.createElement("span");sp2.className="recbadge";sp2.setAttribute("data-i",i);
-      sp2.style.cssText="margin-left:5px;color:#B03A2E;font-weight:bold;font-size:12.5px";
-      sp2.textContent="🏅已破";td.appendChild(sp2);
+      sp2.style.cssText=isTown
+        ?"margin-left:5px;color:#B03A2E;font-weight:bold;font-size:12.5px;background:#FDEBD0;padding:1px 5px;border-radius:4px"
+        :"margin-left:5px;color:#B03A2E;font-weight:bold;font-size:12.5px";
+      sp2.textContent=isTown?"🏅破镇纪录":"🏅已破";td.appendChild(sp2);
     }
   });
 }
-/* 【v4.68】管理员确认破纪录：更新校记录+备注盖章+保存（此后才计加分） */
+/* 【v4.70】管理员确认破纪录（站长 11-21 指令：只用镇记录——确认只更新镇表，merge 增量防覆盖）
+   备注"破镇纪录（已确认@xx）"→ 计分引擎识别加分（统一模式加统一分，分级模式加乡镇档） */
 function confirmRec(i){
   if(DATA.myRole!=="admin"&&DATA.myRole!=="master"){el("msg").className="msg err";el("msg").textContent="破纪录确认需管理员操作";return;}
   var list=window.__list||[],e=list[i];
   if(!e||!e.result)return;
   var std=stdEvent(DATA.cur);
+  var today=new Date().toISOString().slice(0,10);
+  var holder=(e.name||e.no||"");
   var fd=new FormData();
-  fd.append("items",JSON.stringify([{std:std,value:e.result,holder:(e.name||e.no||""),date:new Date().toISOString().slice(0,10)}]));
+  fd.append("items",JSON.stringify([{std:std,value:e.result,holder:holder,date:today}]));
+  fd.append("level","town");fd.append("merge","1"); /* 【v4.70】增量合并镇记录表——不再全量覆盖 */
   fetch("/soft/api/records-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
     if(!d.ok){el("msg").className="msg err";el("msg").textContent=d.msg||"确认失败";return;}
     e.recPending=0;
-    e.note="破纪录（已确认@"+(DATA.myName||"管理员")+"）";
+    e.note="破镇纪录（已确认@"+(DATA.myName||"管理员")+"）";
     var inp=document.querySelector('#resBody input[data-k="note"][data-i="'+i+'"]');if(inp)inp.value=e.note;
-    DATA.records[std]={value:e.result,holder:(e.name||e.no||""),date:new Date().toISOString().slice(0,10)};
+    DATA.recordsTown[std]={value:e.result,holder:holder,date:today};
     doSave(false,function(){
       el("msg").className="msg ok";
-      el("msg").textContent="🏅 破纪录确认完成——「"+std+"」校记录更新为 "+e.result+"（保持者："+(e.name||"")+"），已按规则加分";
+      el("msg").textContent="🏅 破镇纪录确认完成——「"+std+"」镇记录更新为 "+e.result+"（保持者："+(e.name||holder)+"），已按规则加分";
       renderEntry();
     });
   }).catch(function(){el("msg").className="msg err";el("msg").textContent="网络异常——请重试";});
@@ -222,7 +241,7 @@ function renderEntry(){
   var html="";
   list.forEach(function(e,i){
     html+='<tr><td class="g-no">'+esc(e.no||"道"+(i+1))+'</td><td>'+esc(e.name)+'</td>'
-      +'<td style="white-space:nowrap"><input style="width:calc(100% - 24px)" data-i="'+i+'" data-k="result" value="'+esc(e.result)+'" placeholder="'+(fieldEvent(DATA.cur)?'如 1.05':'如 9.66 / 1.03.26')+'"'+RO+'>'+(fieldEvent(DATA.cur)?'<span style="margin-left:5px;color:#9FB2D6;font-size:12.5px">米</span>':'')+(e.recPending===1?'<span class="recbadge" style="margin-left:5px;color:#E67E22;font-weight:bold;font-size:12.5px">⚡待确认</span>':'')+(/破纪录|破记录/.test(String(e.note||""))&&String(e.note||"").indexOf("已确认")>=0?'<span class="recbadge" style="margin-left:5px;color:#B03A2E;font-weight:bold;font-size:12.5px">🏅已破</span>':'')+'</td>'
+      +'<td style="white-space:nowrap"><input style="width:calc(100% - 24px)" data-i="'+i+'" data-k="result" value="'+esc(e.result)+'" placeholder="'+(fieldEvent(DATA.cur)?'如 1.05':'如 9.66 / 1.03.26')+'"'+RO+'>'+(fieldEvent(DATA.cur)?'<span style="margin-left:5px;color:#9FB2D6;font-size:12.5px">米</span>':'')+(e.recPending===1?'<span class="recbadge" style="margin-left:5px;color:#E67E22;font-weight:bold;font-size:12.5px">'+(e.recLevel==="town"?'⚡破镇纪录待确认':'⚡待确认')+'</span>':'')+(/破.{0,2}纪录|破.{0,2}记录/.test(String(e.note||""))&&String(e.note||"").indexOf("已确认")>=0?'<span class="recbadge" style="margin-left:5px;color:#B03A2E;font-weight:bold;font-size:12.5px">🏅已破</span>':'')+'</td>'
       +'<td><input class="rk" data-i="'+i+'" data-k="rank" value="'+esc(e.rank)+'" inputmode="numeric" maxlength="1"'+RO+'></td>'
       +'<td><input data-i="'+i+'" data-k="note" value="'+esc(e.note)+'" list="noteOpts" placeholder="正常"'+RO+'>'+(((CAN_CONFIRM)&&/犯规|取消/.test(String(e.note||""))&&!/已确认/.test(String(e.note||"")))?'<button type="button" data-conf="'+i+'" style="margin-left:6px;background:linear-gradient(135deg,#E8BC4F,#f0d070);color:#14213D;border:none;border-radius:7px;font-size:12px;padding:4px 8px;cursor:pointer;font-weight:600;font-family:inherit">✅ 犯规确认</button>':'')+(CAN_CONFIRM&&e.recPending===1?'<button type="button" data-recconf="'+i+'" style="margin-left:6px;background:linear-gradient(135deg,#B03A2E,#d95c50);color:#fff;border:none;border-radius:7px;font-size:12px;padding:4px 8px;cursor:pointer;font-weight:600;font-family:inherit">🏅 破纪录确认</button>':'')+'</td></tr>';
   });
@@ -522,6 +541,7 @@ Promise.all([
   DATA.numbers=rs[3].numbers||{};
   DATA.results=rs[4].results||{};
   DATA.records=(rs[5]&&rs[5].records)||{}; /* 【v4.68】校记录表 */
+  DATA.recordsTown=(rs[5]&&rs[5].town)||{}; /* 【v4.70】镇记录表（后端 v4.70 起 GET 附带；旧后端无此字段=空表不比对） */
   setTimeout(renderFoulBoard,0);
   var wins=rs[4].windows;
   DATA.myRole=(rs[0]&&rs[0].ok)?"admin":"";
