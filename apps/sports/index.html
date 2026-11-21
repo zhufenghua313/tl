@@ -152,16 +152,16 @@
   </div>
 
   <div class="card">
-    <div class="sec"><span class="num">4½</span><h2>🏅 校记录</h2><span class="tail">成绩录入自动比对 · 破纪录须管理员确认后才加分</span></div>
-    <div class="note">项目名规则：「男子/女子 + 项目名」（如 男子100米、女子跳高、混合接力）——由场次名自动推导，也可手工填。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。录成绩时若优于这里的纪录，系统自动标「⚡待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分。</div>
-    <table id="recTbl" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px;">
-      <thead><tr style="background:#F0F4F9;"><th style="padding:6px 8px;border:1px solid #D8E0EC;">项目</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">纪录</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">保持者</th><th style="padding:6px 8px;border:1px solid #D8E0EC;">日期</th><th style="padding:6px 8px;border:1px solid #D8E0EC;"></th></tr></thead>
-      <tbody id="recTbody"></tbody>
+    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.70】成绩录入自动比对 · 破纪录须管理员确认后才加分</span></div>
+    <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目名规则：「男子/女子 + 项目名」（如 男子100米、女子跳高、混合接力）——由场次名自动推导，也可手工填。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
+    <table id="townTbl" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px;">
+      <thead><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">纪录</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">保持者</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">日期</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
+      <tbody id="townTbody"></tbody>
     </table>
     <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
-      <button class="btn ghost" id="btnRecAdd" type="button">＋ 加一条</button>
-      <button class="btn" id="btnRecSave" type="button">💾 保存校记录</button>
-      <span id="recMsg" style="color:#B03A2E;font-size:13px;"></span>
+      <button class="btn ghost" id="btnTownAdd" type="button">＋ 加一条</button>
+      <button class="btn" id="btnTownSave" type="button">💾 保存镇记录</button>
+      <span id="townMsg" style="color:#B03A2E;font-size:13px;"></span>
     </div>
   </div>
 
@@ -527,9 +527,9 @@ $("evBody").addEventListener("change",function(e){
     if(box) box.style.display=(t.value==="custom")?"block":"none";
   }
 });
-/* =====【v4.68】校记录管理 ===== */
-function recRowAdd(std,value,holder,date){
-  var tb=document.getElementById("recTbody");
+/* =====【v4.70】镇记录管理（站长 11-21 指令：校记录从来没用过——撤卡片，镇记录顶主位） ===== */
+function recRowAdd(tbId,std,value,holder,date){
+  var tb=document.getElementById(tbId);
   var tr=document.createElement("tr");
   tr.innerHTML='<td><input data-rk="std" value="'+(std||"")+'" placeholder="男子100米" style="width:95%;"></td>'
     +'<td><input data-rk="value" value="'+(value||"")+'" placeholder="12.36 或 1.05" style="width:95%;"></td>'
@@ -538,30 +538,31 @@ function recRowAdd(std,value,holder,date){
     +'<td><button type="button" data-recdel style="color:#B03A2E;border:none;background:none;cursor:pointer;font-weight:bold;">✕</button></td>';
   tb.appendChild(tr);
 }
-document.getElementById("btnRecAdd").addEventListener("click",function(){recRowAdd();});
-document.getElementById("recTbl").addEventListener("click",function(ev){
+document.getElementById("townTbl").addEventListener("click",function(ev){
   if(ev.target&&ev.target.hasAttribute("data-recdel"))ev.target.closest("tr").remove();
 });
-document.getElementById("btnRecSave").addEventListener("click",function(){
-  var items=[],rows=document.querySelectorAll("#recTbody tr");
+document.getElementById("btnTownAdd").addEventListener("click",function(){recRowAdd("townTbody");});
+/* 保存：level=town 存镇记录表（后端 v4.70 支持） */
+document.getElementById("btnTownSave").addEventListener("click",function(){
+  var items=[],rows=document.querySelectorAll("#townTbody tr");
   rows.forEach(function(tr){
     var g=function(k){var i=tr.querySelector('input[data-rk="'+k+'"]');return i?i.value.trim():"";};
     if(g("std")&&g("value"))items.push({std:g("std"),value:g("value"),holder:g("holder"),date:g("date")});
   });
-  var fd=new FormData();fd.append("items",JSON.stringify(items));
+  var fd=new FormData();fd.append("items",JSON.stringify(items));fd.append("level","town");
   fetch("/soft/api/records-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
-    var m=document.getElementById("recMsg");
+    var m=document.getElementById("townMsg");
     if(d.ok){m.style.color="#1E8449";m.textContent="✅ "+d.msg;fetchRecordsFill();}
-    else{m.textContent="❌ "+(d.msg||"保存失败");}
-    setTimeout(function(){document.getElementById("recMsg").textContent="";},4000);
-  }).catch(function(){document.getElementById("recMsg").textContent="网络异常，请重试";});
+    else{m.style.color="#B03A2E";m.textContent="❌ "+(d.msg||"保存失败");}
+    setTimeout(function(){document.getElementById("townMsg").textContent="";},4000);
+  }).catch(function(){document.getElementById("townMsg").textContent="网络异常，请重试";});
 });
 function fetchRecordsFill(){
   fetch("/soft/api/records",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
-    var tb=document.getElementById("recTbody");tb.innerHTML="";
-    var recs=(d&&d.records)||{};
-    Object.keys(recs).forEach(function(std){recRowAdd(std,recs[std].value,recs[std].holder,recs[std].date);});
-    if(!Object.keys(recs).length)recRowAdd();
+    var tb2=document.getElementById("townTbody");tb2.innerHTML="";
+    var towns=(d&&d.town)||{}; /* 【v4.70】镇记录表（旧后端无 town 字段=空表，先部署 worker 再用） */
+    Object.keys(towns).forEach(function(std){recRowAdd("townTbody",std,towns[std].value,towns[std].holder,towns[std].date);});
+    if(!Object.keys(towns).length)recRowAdd("townTbody");
   }).catch(function(){});
 }
 fetchRecordsFill();
