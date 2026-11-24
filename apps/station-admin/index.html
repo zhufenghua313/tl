@@ -12,10 +12,11 @@
   .wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px;}
   .btn-out{margin-left:auto;align-self:flex-start;padding:5px 11px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;line-height:1.4;}
   .btn-out:active{background:rgba(255,255,255,.22);}
-  header{background:linear-gradient(120deg,var(--deep),var(--deep2));color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:8px;}
+  header{background:linear-gradient(120deg,var(--deep),var(--deep2));color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:16px;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  header h1{font-size:clamp(17px,4.6vw,22px);line-height:1.35;}
   header::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(217,165,33,.15);pointer-events:none;}
   .h-title{flex:1;min-width:0;}
-  header h1{font-size:22px;}.header p{font-size:13px;color:rgba(255,255,255,.75);margin-top:6px;}
+  header p{font-size:13px;color:rgba(255,255,255,.75);margin-top:6px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 3px 14px rgba(20,33,61,.06);}
   .card h2{font-size:17px;color:var(--deep);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
   .card h2::before{content:"";display:inline-block;width:4px;height:18px;background:var(--gold);border-radius:2px;}
@@ -46,7 +47,7 @@
       <h1>🛠️ 欢乐工具站 · 后台</h1>
       <p>改密码、改首页导航按钮——都在这，一键生效</p>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <a class="btn-out" href="/" style="text-decoration:none">← 返回欢乐工具站首页</a>
       <button class="btn-out" type="button" onclick="doLogout()">🚪 退出登录</button>
     </div>
@@ -97,14 +98,16 @@
   </div>
 
   <div class="card">
-    <h2>🔑 修改运动会管理员密码</h2>
-    <p class="desc">管 <b>运动会登录页「管理员」页签</b>的进入密码（总管理员用）。班主任、录入员的账号密码各自独立，不受这里影响。</p>
+    <h2>🔑 修改运动会系统总后台密码</h2>
+    <p class="desc">改的是 <b>tl.efcc.cc/sports/admin</b>（运动会总管理·多校调度中枢）的登录密码。各学校运动会程序（如羊里）的密码在各自程序内改，互不相干。</p>
     <form id="pfFormSports">
+      <label>当前总后台密码（验明正身）</label>
+      <input type="password" id="opSports" required autocomplete="current-password">
       <label>新密码（至少6位，建议拼音词组+数字）</label>
       <input type="password" id="npSports" minlength="6" required autocomplete="new-password">
       <label>确认新密码（再输一遍）</label>
       <input type="password" id="npSports2" minlength="6" required autocomplete="new-password">
-      <button class="btn-gold" type="submit">一键修改运动会密码</button>
+      <button class="btn-gold" type="submit">一键修改运动会总后台密码</button>
       <div class="msg" id="pmSports"></div>
     </form>
     <p class="hint">💡 忘了这把密码：在运动会登录页「管理员」页签点"忘记密码？用邮箱重置"，邮件发到站长邮箱。</p>
@@ -156,7 +159,22 @@ function bindPw(fid,i1,i2,mid,door){
   });
 }
 bindPw("pfFormPlatform","npPlatform","npPlatform2","pmPlatform","platform");
-bindPw("pfFormSports","npSports","npSports2","pmSports","sports");
+bindGwPw("pfFormSports","npSports","npSports2","pmSports");
+function bindGwPw(fid,i1,i2,mid){
+  el(fid).addEventListener("submit",function(e){
+    e.preventDefault();
+    var m=el(mid);
+    if(el(i1).value!==el(i2).value){ m.className="msg err"; m.textContent="两次输入的新密码不一致"; return; }
+    if(el(i1).value.length<6){ m.className="msg err"; m.textContent="新密码至少 6 位"; return; }
+    fetch("/sports/api/change-pw",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({old:el("opSports").value,"new":el(i1).value}),credentials:"include"})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        m.className="msg "+(d.ok?"ok":"err"); m.textContent=d.msg||"";
+        if(d.ok){ el(fid).reset(); }
+      })
+      .catch(function(){ m.className="msg err"; m.textContent="网络异常，稍后再试"; });
+  });
+}
 bindPw("pfFormStation","npStation","npStation2","pmStation","station");
 function saveNav(){
   var rows=document.querySelectorAll(".nav-row"), nav=[], m=el("navMsg");
