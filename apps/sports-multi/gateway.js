@@ -93,7 +93,15 @@ dialog::backdrop{background:rgba(10,16,30,.55)}
 <input type="password" id="pw" placeholder="总管理密码" autofocus style="text-align:center">
 <button class="p" id="go" style="width:100%;margin-top:12px">登 录</button>
 <div class="msg" id="msg"></div>
-<a href="/sports/" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#5B6577;text-decoration:none">← 返回运动会系统主页</a></div></div>
+<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:13px">
+  <a href="#" id="fg" style="color:#5B6577;text-decoration:none">忘记密码？邮箱找回</a>
+  <a href="/sports/" style="color:#5B6577;text-decoration:none">← 返回主页</a>
+</div>
+<div id="fgBox" style="display:none;margin-top:10px">
+  <input type="email" id="fgMail" placeholder="站长邮箱（197576@163.com）" style="width:100%;padding:9px 12px;border:1.5px solid #DFE4EC;border-radius:9px;font-size:14px;font-family:inherit">
+  <button class="p" id="fgGo" style="width:100%;margin-top:8px">📨 发送重置邮件</button>
+  <div class="msg" id="fgMsg"></div>
+</div></div></div>
 <script>
 var go=function(){
 fetch("/sports/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pwd:document.getElementById("pw").value})})
@@ -103,6 +111,15 @@ if(d.ok){location.reload()}else{var m=document.getElementById("msg");m.className
 };
 document.getElementById("go").onclick=go;
 document.getElementById("pw").addEventListener("keydown",function(e){if(e.key==="Enter")go()});
+document.getElementById("fg").onclick=function(e){e.preventDefault();var b=document.getElementById("fgBox");b.style.display=b.style.display==="none"?"block":"none"};
+document.getElementById("fgGo").onclick=function(){
+var m=document.getElementById("fgMsg");var em=document.getElementById("fgMail").value.trim();
+if(!em){m.className="msg err";m.textContent="请填邮箱";return}
+m.className="msg";m.textContent="发送中…";
+fetch("/sports/api/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})})
+.then(function(r){return r.json()}).then(function(d){m.className="msg "+(d.ok?"ok":"err");m.textContent=d.msg||""})
+.catch(function(){m.className="msg err";m.textContent="网络异常"});
+};
 </script></body></html>`;
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>运动会总管理 · 多校调度</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314233b'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle'%3E%F0%9F%8F%86%3C/text%3E%3C/svg%3E"><style>${css}</style></head><body>
 <nav><div class="nav-in"><div class="brand"><span class="ic">🏆</span><div><b>运动会总管理</b><span>多校版 · 调度中枢</span></div></div></div><a class="btn-out" href="/sports/" style="text-decoration:none">🏠 主页</a><button class="btn-out" id="out">🚪 退出登录</button></div></nav>
@@ -241,6 +258,37 @@ async function doCreate(env, body) {
           return j({ ok: false, msg: "开通失败已回滚：" + (e.message || e) });
         }
       }
+function resetPage(tok) {
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>重置总后台密码</title><style>
+body{font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;background:#F4F6FA;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}
+.box{background:#fff;border:1px solid #DFE4EC;border-radius:14px;padding:28px;max-width:380px;width:92vw;box-shadow:0 2px 10px rgba(20,33,61,.06)}
+.box h1{font-size:19px;color:#14213D;margin:0 0 6px}
+.box p{font-size:13px;color:#5B6577;margin:0 0 16px}
+input{width:100%;padding:10px 12px;border:1.5px solid #DFE4EC;border-radius:9px;font-size:14px;box-sizing:border-box;font-family:inherit}
+input:focus{outline:none;border-color:#E8BC4F}
+button{width:100%;margin-top:12px;background:#14213D;color:#E8BC4F;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.msg{font-size:13px;margin-top:10px;min-height:18px;color:#2E9E5B}
+.msg.err{color:#D64545}
+</style></head><body><div class="box">
+<h1>🔑 设置新密码</h1><p>为运动会总后台（/sports/admin）设置新密码</p>
+<input type="password" id="np" placeholder="新密码（至少6位）">
+<input type="password" id="np2" placeholder="再输一遍" style="margin-top:8px">
+<button id="go">保 存</button>
+<div class="msg" id="m"></div></div>
+<script>
+document.getElementById("go").onclick=function(){
+var a=document.getElementById("np").value,b=document.getElementById("np2").value,m=document.getElementById("m");
+if(a.length<6){m.className="msg err";m.textContent="至少 6 位";return}
+if(a!==b){m.className="msg err";m.textContent="两次输入不一致";return}
+m.className="msg";m.textContent="保存中…";
+fetch("/sports/api/reset?token=${tok}",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({np:a})})
+.then(function(r){return r.json()}).then(function(d){
+if(d.ok){m.className="msg";m.textContent="✅ 已重置，2 秒后去登录页…";setTimeout(function(){location.href="/sports/admin"},2000)}
+else{m.className="msg err";m.textContent=d.msg||"失败"}
+}).catch(function(){m.className="msg err";m.textContent="网络异常"});
+};
+</script></body></html>`;
+}
 function landingPage() {
   const css = `
 :root{--deep:#14213D;--deep2:#1D2D50;--gold:#E8BC4F;--bg:#F4F6FA;--card:#fff;--sub:#5B6577;--ok:#2E9E5B;--err:#D64545;--line:#DFE4EC}
@@ -363,6 +411,50 @@ var worker_default = {
         const tok = await sha256Hex(ph + "-gw-session");
         return j({ ok: true }, 200, "gw_auth=" + tok + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800");
       }
+if (ep === "set-gw-pw" && request.method === "POST") {
+        const { np } = await request.json().catch(() => ({}));
+        if (!np || np.length < 6) return j({ ok: false, msg: "新密码至少 6 位" });
+        const ip = (request.headers.get("CF-Connecting-IP") || "x").replace(/[^a-f0-9:]/g, "").slice(0, 40);
+        const cnt = parseInt((await env.GW_KV.get("rl_" + ip)) || "0");
+        if (cnt >= 3) return j({ ok: false, msg: "改密太频繁（每小时限 3 次），稍后再试" });
+        await env.GW_KV.put("rl_" + ip, String(cnt + 1), { expirationTtl: 3600 });
+        await env.GW_KV.put("pw_hash_gw", await sha256Hex(np));
+        return j({ ok: true, msg: "运动会总后台密码已改" });
+      }
+if (ep === "forgot" && request.method === "POST") {
+        const { email } = await request.json().catch(() => ({}));
+        const saved = (await env.GW_KV.get("recovery_email")) || "197576@163.com";
+        if (!email || String(email).trim().toLowerCase() !== saved.toLowerCase()) return j({ ok: false, msg: "邮箱不对——请填站长开通时登记的邮箱" }, 403);
+        const tok = crypto.randomUUID().replace(/-/g, "");
+        await env.GW_KV.put("gw_reset_" + tok, "1", { expirationTtl: 1800 });
+        const r = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + env.RESEND_API_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "HuanLe Sports <onboarding@resend.dev>",
+            to: [saved],
+            subject: "【运动会总管理】重置总后台密码",
+            html: "<div style='font-family:sans-serif;padding:20px'><h2>运动会总后台密码重置</h2><p>刚才有人在登录页点了「邮箱找回」。如非您本人操作请忽略这封邮件。</p><p><a href='https://tl.efcc.cc/sports/api/reset?token=" + tok + "' style='background:#14213D;color:#E8BC4F;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:bold'>点此设置新密码</a></p><p style='color:#888;font-size:12px'>链接 30 分钟内有效。点开后在页面上输入新密码即可。</p></div>"
+          })
+        });
+        return j({ ok: true, msg: "重置邮件已发到 " + saved + "，30 分钟内有效，请查收（含垃圾箱）" });
+      }
+if (ep === "reset" && request.method === "GET") {
+        const tok = url.searchParams.get("token") || "";
+        const ok1 = await env.GW_KV.get("gw_reset_" + tok);
+        if (!ok1) return notePage("链接已失效", "这封找回邮件的链接已过期或已使用<br><span style='font-size:13px;opacity:.7'>请回到登录页重新发起「邮箱找回」</span>");
+        return html(resetPage(tok));
+      }
+if (ep === "reset" && request.method === "POST") {
+        const tok = url.searchParams.get("token") || "";
+        const { np } = await request.json().catch(() => ({}));
+        const ok1 = await env.GW_KV.get("gw_reset_" + tok);
+        if (!ok1) return j({ ok: false, msg: "链接已失效，请重新发起找回" }, 403);
+        if (!np || np.length < 6) return j({ ok: false, msg: "新密码至少 6 位" });
+        await env.GW_KV.put("pw_hash_gw", await sha256Hex(np));
+        await env.GW_KV.delete("gw_reset_" + tok);
+        return j({ ok: true, msg: "密码已重置，请回登录页用新密码登录" });
+      }
       if (ep === "schools" && request.method === "GET") {
         const rs = await routes(env);
         return j({ ok: true, schools: rs.filter((r) => r.status === "active" && r.slug !== "kongbai").map((r) => ({ slug: r.slug, name: r.name })) });
@@ -373,7 +465,7 @@ var worker_default = {
       }
       if (!await isAuthed(request, env)) return j({ ok: false, msg: "未登录" }, 401);
       if (ep === "logout") return j({ ok: true }, 200, "gw_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
-      if (ep === "set-reg-code" && request.method === "POST") {
+                              if (ep === "set-reg-code" && request.method === "POST") {
         const { code } = await request.json().catch(() => ({}));
         if (!code || String(code).length < 4) return j({ ok: false, msg: "注册口令至少 4 位" });
         await env.GW_KV.put("reg_code", String(code).slice(0, 60));
