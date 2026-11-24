@@ -92,7 +92,8 @@ dialog::backdrop{background:rgba(10,16,30,.55)}
 <span class="ic">🏆</span><h1>总管理登录</h1><p class="sub" style="margin:6px 0 14px">输入总管理密码进入调度中枢</p>
 <input type="password" id="pw" placeholder="总管理密码" autofocus style="text-align:center">
 <button class="p" id="go" style="width:100%;margin-top:12px">登 录</button>
-<div class="msg" id="msg"></div></div></div>
+<div class="msg" id="msg"></div>
+<a href="/sports/" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#5B6577;text-decoration:none">← 返回运动会系统主页</a></div></div>
 <script>
 var go=function(){
 fetch("/sports/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pwd:document.getElementById("pw").value})})
