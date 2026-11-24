@@ -54,9 +54,9 @@
     <h2>🔑 修改我的密码</h2>
     <p class="desc">原密码验证后换成新密码（建议 6 位以上）；改完需用新密码重新登录</p>
     <div style="display:grid;gap:8px;max-width:340px">
-      <input type="password" id="pwOld" placeholder="原密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
-      <input type="password" id="pwNew" placeholder="新密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
-      <input type="password" id="pwNew2" placeholder="再输一遍新密码" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <input type="password" id="pwOld" placeholder="原密码" autocomplete="current-password" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <input type="password" id="pwNew" placeholder="新密码" autocomplete="new-password" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
+      <input type="password" id="pwNew2" placeholder="再输一遍新密码" autocomplete="new-password" style="padding:9px 12px;border:1px solid #DFE4EC;border-radius:9px;font-size:14px">
       <button id="btnPw" style="padding:10px;border:none;border-radius:99px;background:var(--gold);color:#fff;font-size:14px;cursor:pointer">保存新密码</button>
       <div id="pwMsg" style="font-size:13px"></div>
     </div>
