@@ -199,7 +199,7 @@ function notePage(title, text) {
 
 async function doCreate(env, body) {
         const { name, slug, pwd, hint } = body || {};
-  if (["admin", "api", "sports", "www", "reg", "login", "root", "home"].includes(slug)) return j({ ok: false, msg: "该拼音后缀是系统保留字，请换一个" });
+  if (["admin", "api", "sports", "www", "reg", "login", "root", "home", "kongbai"].includes(slug)) return j({ ok: false, msg: "该拼音后缀是系统保留字，请换一个" });
         if (!name || !slug || !pwd) return j({ ok: false, msg: "信息不全" });
         if (!/^[a-z][a-z0-9-]{0,19}$/.test(slug)) return j({ ok: false, msg: "拼音前缀只能用小写字母/数字/短横线，2-20位" });
         if (pwd.length < 6) return j({ ok: false, msg: "初始密码至少 6 位" });
@@ -294,7 +294,7 @@ nav{background:var(--deep);color:#fff}
     <div class="card">
       <h2>🔑 进入本校系统</h2>
       <p class="sub">选择学校 + 总管理员密码，直达您学校的运动会工作台</p>
-      <form id="fL" method="POST" action="/soft/__auth">
+      <form id="fL" method="POST" action="/sports/">
         <div class="field"><label>选择学校</label><select id="sch"><option value="">加载中…</option></select></div>
         <div class="field"><label>总管理员密码</label><input type="password" name="password" placeholder="本校总管理员密码" required></div>
         <input type="hidden" name="rt" value="admin">
@@ -365,7 +365,7 @@ var worker_default = {
       }
       if (ep === "schools" && request.method === "GET") {
         const rs = await routes(env);
-        return j({ ok: true, schools: rs.filter((r) => r.status === "active").map((r) => ({ slug: r.slug, name: r.name })) });
+        return j({ ok: true, schools: rs.filter((r) => r.status === "active" && r.slug !== "kongbai").map((r) => ({ slug: r.slug, name: r.name })) });
       }
       if (ep === "reg" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
@@ -438,6 +438,7 @@ var worker_default = {
         const rs = await routes(env);
         const s = rs.find((r) => r.slug === slug);
         if (!s) return j({ ok: false, msg: "学校不存在" });
+        if (slug === "kongbai") return j({ ok: false, msg: "空白模板不可删除（新建学校的母本，可改密码但别删）" });
         if (confirm !== slug) return j({ ok: false, msg: "确认码不对" });
         if (s.type === "proxy") return j({ ok: false, msg: "过渡期学校不支持删除" });
         let errs = [];
@@ -463,6 +464,7 @@ var worker_default = {
       else if (rest.startsWith("/soft/") || rest.startsWith("/apps/")) target = rest;
       else target = "/apps/sports/" + rest.replace(/^\//, "");
       const u2 = new URL(target, url.origin);
+      u2.search = url.search;
       const req2 = new Request(u2.toString(), request);
       const resp = await env.TL.fetch(req2);
       const loc0 = resp.headers.get("Location");
