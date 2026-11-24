@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>新学年归档 · 运动会管理</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314213d'/%3E%3Ctext x='32' y='44' font-size='30' text-anchor='middle'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+:root{--deep:#14213D;--deep2:#1B2A4A;--deep3:#2A4370;--gold:#D9A521;--goldL:#E8BC4F;--goldbg:#FBF6E9;--bg:#F4F6FA;--card:#fff;--line:#DFE4EC;--ink:#1A2233;--sub:#5B6577;--ok:#2E7D4F;--err:#B03A2E;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:16px;max-width:860px;margin:0 auto}
+.crumbs{font-size:13px;color:var(--sub);margin-bottom:14px}.crumbs a{color:var(--deep3);text-decoration:none}.crumbs .sep{margin:0 6px;color:#B8C0CE}
+.hero{background:linear-gradient(135deg,var(--deep) 0%,var(--deep3) 100%);border-radius:14px;padding:22px 24px;color:#fff;margin-bottom:16px}
+.hero h1{font-size:22px;margin-bottom:6px}.hero p{font-size:13.5px;opacity:.85}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:14px;box-shadow:0 2px 8px rgba(20,33,61,.05)}
+.card h2{font-size:16px;margin-bottom:8px;color:var(--deep2)}
+.desc{font-size:13px;color:var(--sub);line-height:1.7}
+.btn{display:inline-block;border:none;border-radius:9px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-main{background:linear-gradient(135deg,var(--gold) 0%,var(--goldL) 100%);color:#14213D}
+.btn-main:hover{filter:brightness(1.05)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--deep2)}
+.btn-danger{background:#fff;border:1px solid #E7B4B0;color:var(--err)}
+.btn-danger:hover{background:#FDF3F2}
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:7px}
+.keep{background:var(--goldbg);border:1px solid #E8D9AE;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;line-height:1.8}
+.wipe{background:#FDF3F2;border:1px solid #E7B4B0;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;line-height:1.8}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid var(--line);padding:8px 10px;font-size:13px;text-align:left}
+th{background:#F7F4EA;color:var(--deep2);font-weight:600}
+.msg{margin-top:10px;font-size:13.5px;min-height:20px;word-break:break-all}
+.foot{margin-top:22px;font-size:12px;color:#8A93A5;line-height:1.8;text-align:center}
+dialog{border:none;border-radius:14px;padding:22px;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(20,33,61,.45)}
+dialog h3{font-size:16px;margin-bottom:10px;color:var(--err)}
+dialog p{font-size:13.5px;line-height:1.8;color:var(--ink)}
+dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="crumbs"><a href="/soft/sports/home.html">工作台</a><span class="sep">›</span><b>新学年归档</b></div>
+<div class="hero">
+  <h1>🗂️ 新学年归档</h1>
+  <p>把本届运动会数据封存进档案库，清空报名/号码/成绩/赛程，轻装开启新一届——校纪录、账号、项目配置全部保留</p>
+</div>
+
+<div class="card">
+  <h2>⚡ 一键归档本届并开启新学年</h2>
+  <div class="keep">
+    ✅ <b>保留</b>（跨年资产，不动的）：基础配置（学校/年级/班级）、比赛项目表、校纪录榜、全部账号密码
+  </div>
+  <div class="wipe">
+    🗑️ <b>封存后清空</b>（进档案库，可随时恢复）：报名表、号码、全部成绩、赛程、程序册信息
+  </div>
+  <p class="desc" style="margin-top:10px">归档完成后，请到 <a href="/soft/sports/index.html" style="color:var(--deep3)">基础配置</a> 把运动会名称里的年份改成本学年（如"2027年春季运动会"→"2028年春季运动会"）。</p>
+  <div style="margin-top:12px"><button class="btn btn-main" id="btnNew">📦 归档本届并清空数据</button></div>
+  <div class="msg" id="msgNew"></div>
+</div>
+
+<div class="card">
+  <h2>📚 历届档案</h2>
+  <p class="desc">每届封存的数据都在这里——下载 JSON 留底（推荐，落袋为安）、恢复到当前系统、或彻底删除。下载的 JSON 可以在电脑上修改后重新上传（同名运动会自动替换，不会重复堆积）。</p>
+  <div style="margin-top:10px"><input type="file" id="upFile" accept=".json,application/json" style="display:none"><button class="btn btn-ghost btn-sm" id="btnUp">⬆️ 上传备份文件（修改后的 JSON 也可回存）</button></div>
+  <div id="listBox"><p class="desc">正在加载…</p></div>
+  <div class="msg" id="msgList"></div>
+</div>
+
+<dialog id="dlg">
+  <h3>⚠️ 请再确认一遍</h3>
+  <p id="dlgText"></p>
+  <div class="row">
+    <button class="btn btn-ghost" id="dlgCancel">取消</button>
+    <button class="btn btn-danger" id="dlgOk">确认执行</button>
+  </div>
+</dialog>
+
+<footer class="foot">
+  运动会管理系统 · 新学年归档 手搓 v1【v4.84】<br>
+  本系统免费提供使用。使用即视为同意：开发者不对数据出错、丢失、服务中断承担赔偿责任——重要数据请使用本页"下载"功能自行备份留底。
+</footer>
+
+<script>
+function el(id){return document.getElementById(id)}
+var PENDING=null;
+el("btnNew").addEventListener("click",function(){
+  PENDING=function(){
+    el("msgNew").style.color="#5B6577";el("msgNew").textContent="⏳ 正在归档…";
+    fetch("/soft/api/archive-new",{method:"POST"}).then(function(r){return r.json()}).then(function(d){
+      el("msgNew").style.color=d.ok?"var(--ok)":"var(--err)";el("msgNew").textContent=(d.ok?"✅ ":"❌ ")+(d.msg||"");
+      if(d.ok)loadList();
+    }).catch(function(){el("msgNew").style.color="var(--err)";el("msgNew").textContent="网络异常，稍后再试";});
+  };
+  el("dlgText").textContent="即将把本届运动会数据封存进档案库，然后清空报名、号码、成绩、赛程。此操作会改变当前所有数据（档案可恢复，但建议先下载留底）。确定继续吗？";
+  el("dlg").showModal();
+});
+function ask(text,fn){PENDING=fn;el("dlgText").textContent=text;el("dlg").showModal();}
+el("dlgCancel").addEventListener("click",function(){PENDING=null;el("dlg").close()});
+el("dlgOk").addEventListener("click",function(){el("dlg").close();if(PENDING){PENDING();PENDING=null;}});
+
+function post(path,idx,msgEl,okTip){
+  var fd=new FormData();fd.append("index",idx);
+  msgEl.style.color="#5B6577";msgEl.textContent="⏳ 处理中…";
+  fetch(path,{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
+    msgEl.style.color=d.ok?"var(--ok)":"var(--err)";msgEl.textContent=(d.ok?"✅ ":"❌ ")+(d.msg||(okTip||""));
+    if(d.ok)loadList();
+  }).catch(function(){msgEl.style.color="var(--err)";msgEl.textContent="网络异常，稍后再试";});
+}
+function download(idx,meetName){
+  var fd=new FormData();fd.append("index",idx);
+  fetch("/soft/api/archive-get",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
+    if(!d.ok){el("msgList").style.color="var(--err)";el("msgList").textContent="❌ "+(d.msg||"获取失败");return;}
+    var blob=new Blob([JSON.stringify(d.item,null,2)],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download="运动会归档_"+(meetName||"第"+(idx+1)+"届")+"_"+(d.item.archivedAt||"")+".json";
+    a.click();URL.revokeObjectURL(a.href);
+    el("msgList").style.color="var(--ok)";el("msgList").textContent="✅ 已下载到本地";
+  }).catch(function(){el("msgList").style.color="var(--err)";el("msgList").textContent="网络异常，稍后再试";});
+}
+function loadList(){
+  fetch("/soft/api/archive-list",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+    var box=el("listBox");
+    if(!d.ok){box.innerHTML='<p class="desc">❌ 加载失败</p>';return;}
+    var items=d.items||[];
+    if(!items.length){box.innerHTML='<p class="desc">还没有历届档案。第一届用完后点上面的按钮归档，档案就会出现在这里。</p>';return;}
+    var h='<table><tr><th>#</th><th>运动会</th><th>归档日期</th><th>数据量</th><th style="width:220px">操作</th></tr>';
+    items.forEach(function(it){
+      h+='<tr><td>'+(it.i+1)+'</td><td>'+esc(it.meetName||"（未命名）")+'</td><td>'+esc(it.archivedAt)+'</td><td>'+Math.ceil(it.size/1024)+' KB</td>';
+      h+='<td><button class="btn btn-ghost btn-sm" data-dl="'+it.i+'">下载留底</button> <button class="btn btn-ghost btn-sm" data-rs="'+it.i+'">恢复</button> <button class="btn btn-danger btn-sm" data-del="'+it.i+'">删除</button></td></tr>';
+    });
+    h+='</table>';
+    box.innerHTML=h;
+    box.querySelectorAll("[data-dl]").forEach(function(b){b.addEventListener("click",function(){download(b.dataset.dl,items[b.dataset.dl].meetName)})});
+    box.querySelectorAll("[data-rs]").forEach(function(b){b.addEventListener("click",function(){
+      var i=b.dataset.rs;
+      ask('即将把档案「'+(items[i].meetName||"第"+(Number(i)+1)+"届")+'」的数据恢复到当前系统——当前未归档的报名/成绩会被覆盖！确定继续吗？',function(){post("/soft/api/archive-restore",i,el("msgList"))});
+    })});
+    box.querySelectorAll("[data-del]").forEach(function(b){b.addEventListener("click",function(){
+      var i=b.dataset.del;
+      ask('即将永久删除档案「'+(items[i].meetName||"第"+(Number(i)+1)+"届")+'」——删除后无法恢复（除非您下载过 JSON 留底）。确定继续吗？',function(){post("/soft/api/archive-del",i,el("msgList"))});
+    })});
+  }).catch(function(){el("listBox").innerHTML='<p class="desc">网络异常，刷新重试</p>'});
+}
+function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+/* 【v4.84b】上传备份：修改后的 JSON 回存（同名运动会自动替换） */
+el("btnUp").addEventListener("click",function(){el("upFile").click()});
+el("upFile").addEventListener("change",function(){
+  var f=this.files[0];this.value="";
+  if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    var item=null;
+    try{item=JSON.parse(fr.result)}catch(e){el("msgList").style.color="var(--err)";el("msgList").textContent="❌ 文件不是合法 JSON";return;}
+    if(!item||typeof item!=="object"||!item.data){el("msgList").style.color="var(--err)";el("msgList").textContent="❌ 格式不对：须是本系统导出的归档 JSON（含 data 字段）";return;}
+    var name=item.meetName||"（未命名）";
+    ask('将导入「'+name+'」的备份数据进档案库'+(name!=="（未命名）"?'（档案库已有同名运动会时将替换旧档案）':'')+'。确定继续吗？',function(){
+      var fd=new FormData();fd.append("file",new Blob([JSON.stringify(item)],{type:"application/json"}),"backup.json");
+      el("msgList").style.color="#5B6577";el("msgList").textContent="⏳ 上传中…";
+      fetch("/soft/api/archive-upload",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
+        el("msgList").style.color=d.ok?"var(--ok)":"var(--err)";el("msgList").textContent=(d.ok?"✅ ":"❌ ")+(d.msg||"");
+        if(d.ok)loadList();
+      }).catch(function(){el("msgList").style.color="var(--err)";el("msgList").textContent="网络异常，稍后再试";});
+    });
+  };
+  fr.readAsText(f,"utf-8");
+});
+loadList();
+fetch("/soft/api/me",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+  if(!d.ok||d.role!=="master"&&d.role!=="admin"){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#B03A2E">仅总管理员可进入本页</div>';}
+});
+</script>
+</body>
+</html>
