@@ -106,7 +106,7 @@ table.rec-tbl th{background:#EFEBE0;}
     <div class="empty">加载中…</div>
   </div>
 
-  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.79】｜ 班名4.1班格式 · 列头两行 · 各级部只列本年级项目<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
+  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.79b】｜ 班名4.1班格式（中文班号也认） · 列头两行 · 各级部只列本年级项目<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
 </div>
 
 <script>
@@ -123,15 +123,25 @@ function gradeOf(cn){
 function gName(g){return ["","一年级","二年级","三年级","四年级","五年级","六年级"][g]||"其他";}
 
 /* 【v4.77】生成 A4 纸页：每级部一张金标准宽表（单位+各项目得分+总分+名次），不再出全校总榜 */
-function gradeSortKey(cn){ /* "四年级1班"→级部+班号，保证 1班→2班…顺序 */
+function gradeSortKey(cn){ /* "四年级1班/四年级一班"→级部+班号，保证 1班→2班…顺序 */
   var g=gradeOf(cn)||9;
-  var m=String(cn).match(/(\d+)\s*班/);
-  return g*100+(m?parseInt(m[1],10):99);
+  var m=String(cn).match(/(\d+|[一二三四五六七八九十]+)班/);
+  var n=m?(isNaN(m[1])?cnNum(m[1]):parseInt(m[1],10)):99;
+  return g*100+(n||99);
 }
 var CN2NUM={"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
-function shortCls(cls){ /* 【v4.79】班名缩短：四年级1班→4.1班（金标准格式），无班号原样 */
-  var m=String(cls).match(/^([一二三四五六])年级(\d+)班$/);
-  return m?(CN2NUM[m[1]]+"."+m[2]+"班"):cls;
+function cnNum(t){ /* 【v4.79b】中文班号→阿拉伯：一~十二班（"一班"→1，"十二班"→12） */
+  var d={"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9};
+  if(t==="十")return 10;
+  if(t.indexOf("十")===0)return 10+(d[t[1]]||0);
+  if(t.indexOf("十")>0)return (d[t[0]]||0)*10+(d[t[t.length-1]]||0);
+  return d[t]||null;
+}
+function shortCls(cls){ /* 【v4.79】班名缩短：四年级1班/四年级一班→4.1班（阿拉伯与中文班号都认），无班号原样 */
+  var m=String(cls).match(/^([一二三四五六])年级(\d+|[一二三四五六七八九十]+)班$/);
+  if(!m)return cls;
+  var n=isNaN(m[2])?cnNum(m[2]):parseInt(m[2],10);
+  return n?(CN2NUM[m[1]]+"."+n+"班"):cls;
 }
 function evHead(ev){ /* 【v4.79】列头拆两行：男子<br>60米 / 4×100米<br>混合接力 —— 宽度再省一半 */
   return esc(evShort(ev))
