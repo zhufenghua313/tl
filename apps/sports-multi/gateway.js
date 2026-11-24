@@ -460,11 +460,22 @@ var worker_default = {
     if (s.type === "proxy") {
       let target;
       if (rest === "/" || rest === "") target = "/apps/sports/home.html";
-      else if (rest.startsWith("/soft/")) target = rest;
+      else if (rest.startsWith("/soft/") || rest.startsWith("/apps/")) target = rest;
       else target = "/apps/sports/" + rest.replace(/^\//, "");
       const u2 = new URL(target, url.origin);
       const req2 = new Request(u2.toString(), request);
       const resp = await env.TL.fetch(req2);
+      const loc0 = resp.headers.get("Location");
+      if (loc0 && resp.status >= 300 && resp.status < 400) {
+        try {
+          const lu0 = new URL(loc0, url.origin);
+          if (lu0.origin === url.origin && !lu0.pathname.startsWith("/sports/" + slug + "/") && lu0.pathname !== "/") {
+            const h0 = new Headers(resp.headers);
+            h0.set("Location", "/sports/" + slug + lu0.pathname + lu0.search);
+            return new Response(resp.body, { status: resp.status, headers: h0 });
+          }
+        } catch (e) {}
+      }
       const ct = resp.headers.get("Content-Type") || "";
       if (ct.includes("text/html")) {
         let t = await resp.text();
