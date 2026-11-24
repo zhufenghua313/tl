@@ -152,7 +152,7 @@
   </div>
 
   <div class="card">
-    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.73】男女/混合分表上下排列 · 输入即自动保存（停手1.5秒入库） · Excel式键盘导航（回车/↑↓/→←跳格，末格回车自动加行）</span></div>
+    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.74】成绩格自动带单位（田赛米/径赛秒） · 同项目即时破纪录比对（径赛小者胜/田赛大者胜，超了弹确认替换） · 成绩格式兼容 12.36/1:05.56/1.05.56</span></div>
     <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目下拉自动列出比赛项目推导的选项（男子/女子 + 项目名，接力=混合）；下拉尾部「＋新增项目…」可添加历史项目（以前有、现在不比赛的项目也可留档）。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
     <div style="margin-top:10px;">
       <div style="margin-bottom:18px;">
@@ -572,28 +572,37 @@ function recRowAdd(tbId,std,value,holder,date,unit,place){
   var tr=document.createElement("tr");
   tr.innerHTML='<td><select data-rk="std" style="width:95%;padding:4px;"></select></td>'
     +'<td><input data-rk="holder" value="'+(holder||"")+'" placeholder="姓名" style="width:95%;"></td>'
-    +'<td><input data-rk="value" value="'+(value||"")+'" placeholder="12.36 或 1.05" style="width:95%;"></td>'
+    +'<td><input data-rk="value" value="'+(value||"")+'" placeholder="径赛12.36 / 田赛1.85" style="width:95%;"><span data-unit style="margin-left:3px;color:#999;font-size:12px;white-space:nowrap;"></span></td>'
     +'<td><input data-rk="unit" value="'+(unit||"")+'" placeholder="辛兴学区" style="width:95%;"></td>'
     +'<td><input data-rk="date" value="'+(date||"")+'" placeholder="1999.10" style="width:95%;"></td>'
     +'<td><input data-rk="place" value="'+(place||"")+'" placeholder="羊里中学" style="width:95%;"></td>'
     +'<td><button type="button" data-recdel style="color:#B03A2E;border:none;background:none;cursor:pointer;font-weight:bold;">✕</button></td>';
   tb.appendChild(tr);
+  var unitEl=tr.querySelector("[data-unit]");
+  var fillUnit=function(){ /* 【v4.74】项目名→成绩单位：田赛=米，径赛=秒 */
+    var std=sel.value||cur||"";
+    var isField=/跳高|跳远|三级跳|铅球|垒球|实心球|标枪|铁饼|链球|掷|投/.test(std);
+    var isTime=/(\d+\s*米|接力|跑|竞走|跨栏)/.test(std)&&!isField;
+    unitEl.textContent=isField?"米":isTime?"秒":"";
+  };
   var sel=tr.querySelector('select[data-rk="std"]');
   var cur=std||"";
   var fill=function(){ var pool=townPool(cur);
     sel.innerHTML='<option value="">— 选项目 —</option>'
       +pool.map(function(n){return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('')
       +'<option value="__add__">＋新增项目…</option>'; };
-  fill();
+  fill(); fillUnit();
   sel.addEventListener("mousedown",function(){ cur=sel.value&&sel.value!=="__add__"?sel.value:cur; fill(); }); /* 每次点开现读比赛项目表（防配置未加载时的空池） */
+  sel.addEventListener("change",function(){ fillUnit(); });
   sel.addEventListener("change",function(){
+    fillUnit();
     if(sel.value!=="__add__")return;
     var n=(prompt("新增项目名（规则：男子/女子+项目名，如 男子800米；接力=混合4×100米）:")||"").trim();
     if(!n){ fill(); return; }
     var extra=[]; try{ extra=JSON.parse(localStorage.getItem("town_extra_projects")||"[]"); }catch(e){ extra=[]; }
     if(extra.indexOf(n)<0)extra.push(n);
     try{ localStorage.setItem("town_extra_projects",JSON.stringify(extra)); }catch(e){}
-    cur=n; fill();
+    cur=n; fill(); fillUnit();
   });
 }
 document.addEventListener("click",function(ev){
@@ -655,8 +664,49 @@ document.addEventListener("keydown",function(ev){
 });
 
 var _townAutoTimer=null;
+function parsePerf(str){ /* 【v4.74】成绩解析：兼容 12.36 / 1:05.56 / 1.05.56(站长手滑双点) / 1:05:56 —— 返回{v:秒或米, time:是否多段时间} */
+  str=String(str||"").trim(); if(!str)return null;
+  str=str.replace(/[。．]/g,":");
+  var dots=(str.match(/\./g)||[]).length;
+  if(dots>=2)str=str.replace(/\./,":"); /* 双点=分.秒.百分秒 → 首.转: */
+  if(str.indexOf(":")>=0){
+    var seg=str.split(":").map(parseFloat); if(seg.some(isNaN))return null;
+    var v=0; seg.forEach(function(n){v=v*60+n;});
+    return {v:v,time:true};
+  }
+  var n=parseFloat(str); if(isNaN(n))return null;
+  return {v:n,time:false};
+}
+function isFieldStd(std){ return /跳高|跳远|三级跳|铅球|垒球|实心球|标枪|铁饼|链球|掷|投/.test(std||""); }
+function checkBreak(tr){ /* 【v4.74】同项目即时比对：新成绩优于已有纪录→提示确认替换（径赛小者胜，田赛大者胜） */
+  var std=tr.querySelector('select[data-rk="std"]').value;
+  var gi=tr.querySelector('input[data-rk="value"]');
+  var nv=parsePerf(gi.value); if(!std||!nv)return;
+  var field=isFieldStd(std);
+  var rows=Array.prototype.slice.call(tr.parentNode.querySelectorAll("tr"));
+  for(var i=0;i<rows.length;i++){
+    var r2=rows[i]; if(r2===tr)continue;
+    var s2=r2.querySelector('select[data-rk="std"]');
+    if(!s2||s2.value!==std)continue;
+    var ov=parsePerf(r2.querySelector('input[data-rk="value"]').value);
+    if(!ov)continue;
+    var ot=r2.querySelector('input[data-rk="value"]').value.trim();
+    var better=field?(nv.v>ov.v):(nv.v<ov.v);
+    if(better){
+      var oh=r2.querySelector('input[data-rk="holder"]').value.trim()||"未填";
+      if(confirm("⚡ 「"+std+"」新成绩 "+gi.value.trim()+(field?"米":"(时间)")+" 优于当前纪录 "+ot+"（"+oh+"）——确认替换为最新纪录？\n（确定=旧行清除，新行成为纪录；取消=两行都留着自己处理）")){
+        r2.remove();
+      }
+      break;
+    }
+  }
+}
 document.addEventListener("change",function(ev){ /* 【v4.73】输入即自动保存：任一格内容变化，停手1.5秒自动存云端 */
   if(!ev.target.matches||!ev.target.matches(".town-tbody [data-rk]"))return;
+  if(ev.target.matches('input[data-rk="value"]')){
+    var tr=ev.target.closest("tr");
+    if(tr){ checkBreak(tr); var ue=tr.querySelector("[data-unit]"); if(ue&&!ue.textContent)ue.textContent=""; }
+  }
   clearTimeout(_townAutoTimer);
   _townAutoTimer=setTimeout(function(){saveTownRecords(true);},1500);
 });
