@@ -101,8 +101,6 @@
     <h2>🔑 修改运动会系统总后台密码</h2>
     <p class="desc">改的是 <b>tl.efcc.cc/sports/admin</b>（运动会总管理·多校调度中枢）的登录密码。各学校运动会程序（如羊里）的密码在各自程序内改，互不相干。</p>
     <form id="pfFormSports">
-      <label>当前总后台密码（验明正身）</label>
-      <input type="password" id="opSports" required autocomplete="current-password">
       <label>新密码（至少6位，建议拼音词组+数字）</label>
       <input type="password" id="npSports" minlength="6" required autocomplete="new-password">
       <label>确认新密码（再输一遍）</label>
@@ -166,7 +164,7 @@ function bindGwPw(fid,i1,i2,mid){
     var m=el(mid);
     if(el(i1).value!==el(i2).value){ m.className="msg err"; m.textContent="两次输入的新密码不一致"; return; }
     if(el(i1).value.length<6){ m.className="msg err"; m.textContent="新密码至少 6 位"; return; }
-    fetch("/sports/api/change-pw",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({old:el("opSports").value,"new":el(i1).value}),credentials:"include"})
+    fetch("/sports/api/set-gw-pw",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({np:el(i1).value})})
       .then(function(r){return r.json()})
       .then(function(d){
         m.className="msg "+(d.ok?"ok":"err"); m.textContent=d.msg||"";
