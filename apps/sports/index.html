@@ -152,10 +152,10 @@
   </div>
 
   <div class="card">
-    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.70】成绩录入自动比对 · 破纪录须管理员确认后才加分</span></div>
-    <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目名规则：「男子/女子 + 项目名」（如 男子100米、女子跳高、混合接力）——由场次名自动推导，也可手工填。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
+    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.71】项目下拉可选可增 · 记录含保持者单位 · 破纪录须管理员确认</span></div>
+    <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目下拉自动列出比赛项目推导的选项（男子/女子 + 项目名，接力=混合）；下拉尾部「＋新增项目…」可添加历史项目（以前有、现在不比赛的项目也可留档）。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
     <table id="townTbl" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px;">
-      <thead><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">纪录</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">保持者</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">日期</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
+      <thead><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">纪录</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">保持者</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">单位</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">日期</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
       <tbody id="townTbody"></tbody>
     </table>
     <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
@@ -528,15 +528,50 @@ $("evBody").addEventListener("change",function(e){
   }
 });
 /* =====【v4.70】镇记录管理（站长 11-21 指令：校记录从来没用过——撤卡片，镇记录顶主位） ===== */
-function recRowAdd(tbId,std,value,holder,date){
+/* =====【v4.71】项目改下拉（池=比赛项目推导∪历史项目∪已录值，尾部可新增）；每条记录加「单位」 ===== */
+function townPool(cur){ /* 项目池：比赛项目实时推导 + localStorage 历史池 + 当前值兜底 */
+  var set={},arr=[];
+  var push=function(n){ n=(n||"").trim(); if(n&&!set[n]){set[n]=1;arr.push(n);} };
+  document.querySelectorAll('#evTbody tr').forEach(function(tr){
+    var ni=tr.querySelector('[data-ek="name"]'); if(!ni)return;
+    var name=(ni.value||"").trim(); if(!name)return;
+    var fs=tr.querySelector('[data-ek="form"]');
+    var form=fs?fs.value:"个人";
+    if(/混合|团体/.test(name)) push(name);
+    else if(form==="团体") push("混合"+name);
+    else{ push("男子"+name); push("女子"+name); }
+  });
+  var extra=[]; try{ extra=JSON.parse(localStorage.getItem("town_extra_projects")||"[]"); }catch(e){ extra=[]; }
+  extra.forEach(push);
+  push(cur);
+  return arr;
+}
+function recRowAdd(tbId,std,value,holder,date,unit){
   var tb=document.getElementById(tbId);
   var tr=document.createElement("tr");
-  tr.innerHTML='<td><input data-rk="std" value="'+(std||"")+'" placeholder="男子100米" style="width:95%;"></td>'
+  tr.innerHTML='<td><select data-rk="std" style="width:95%;padding:4px;"></select></td>'
     +'<td><input data-rk="value" value="'+(value||"")+'" placeholder="12.36 或 1.05" style="width:95%;"></td>'
     +'<td><input data-rk="holder" value="'+(holder||"")+'" placeholder="姓名" style="width:95%;"></td>'
+    +'<td><input data-rk="unit" value="'+(unit||"")+'" placeholder="××镇中心小学" style="width:95%;"></td>'
     +'<td><input data-rk="date" value="'+(date||"")+'" placeholder="2025-04-10" style="width:95%;"></td>'
     +'<td><button type="button" data-recdel style="color:#B03A2E;border:none;background:none;cursor:pointer;font-weight:bold;">✕</button></td>';
   tb.appendChild(tr);
+  var sel=tr.querySelector('select[data-rk="std"]');
+  var cur=std||"";
+  var fill=function(){ var pool=townPool(cur);
+    sel.innerHTML='<option value="">— 选项目 —</option>'
+      +pool.map(function(n){return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('')
+      +'<option value="__add__">＋新增项目…</option>'; };
+  fill();
+  sel.addEventListener("change",function(){
+    if(sel.value!=="__add__")return;
+    var n=(prompt("新增项目名（规则：男子/女子+项目名，如 男子800米；接力=混合4×100米）:")||"").trim();
+    if(!n){ fill(); return; }
+    var extra=[]; try{ extra=JSON.parse(localStorage.getItem("town_extra_projects")||"[]"); }catch(e){ extra=[]; }
+    if(extra.indexOf(n)<0)extra.push(n);
+    try{ localStorage.setItem("town_extra_projects",JSON.stringify(extra)); }catch(e){}
+    cur=n; fill();
+  });
 }
 document.getElementById("townTbl").addEventListener("click",function(ev){
   if(ev.target&&ev.target.hasAttribute("data-recdel"))ev.target.closest("tr").remove();
@@ -546,8 +581,8 @@ document.getElementById("btnTownAdd").addEventListener("click",function(){recRow
 document.getElementById("btnTownSave").addEventListener("click",function(){
   var items=[],rows=document.querySelectorAll("#townTbody tr");
   rows.forEach(function(tr){
-    var g=function(k){var i=tr.querySelector('input[data-rk="'+k+'"]');return i?i.value.trim():"";};
-    if(g("std")&&g("value"))items.push({std:g("std"),value:g("value"),holder:g("holder"),date:g("date")});
+    var g=function(k){var i=tr.querySelector('[data-rk="'+k+'"]');return i?i.value.trim():"";};
+    if(g("std")&&g("value")&&g("std")!=="__add__")items.push({std:g("std"),value:g("value"),holder:g("holder"),unit:g("unit"),date:g("date")});
   });
   var fd=new FormData();fd.append("items",JSON.stringify(items));fd.append("level","town");
   fetch("/soft/api/records-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
@@ -561,7 +596,7 @@ function fetchRecordsFill(){
   fetch("/soft/api/records",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
     var tb2=document.getElementById("townTbody");tb2.innerHTML="";
     var towns=(d&&d.town)||{}; /* 【v4.70】镇记录表（旧后端无 town 字段=空表，先部署 worker 再用） */
-    Object.keys(towns).forEach(function(std){recRowAdd("townTbody",std,towns[std].value,towns[std].holder,towns[std].date);});
+    Object.keys(towns).forEach(function(std){recRowAdd("townTbody",std,towns[std].value,towns[std].holder,towns[std].date,towns[std].unit);});
     if(!Object.keys(towns).length)recRowAdd("townTbody");
   }).catch(function(){});
 }
