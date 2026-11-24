@@ -47,6 +47,24 @@
   .empty{text-align:center;color:var(--sub);padding:30px 0;font-size:14px;}
   .lamp{width:10px;height:10px;border-radius:50%;background:#E8BC4F;box-shadow:0 0 8px #E8BC4F;animation:br 2s infinite;}
   @keyframes br{50%{opacity:.35;}}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;} /* 【v4.77】手机端宽表横向滑动 */
+table.grid{min-width:640px;font-size:12px;}
+table.grid th,table.grid td{border:1px solid #B8AC8F;padding:4px 6px;text-align:center;white-space:nowrap;}
+table.grid th{background:#F7F1E3;color:#5B4A1E;font-weight:bold;}
+table.grid td.c-cls,table.grid th.c-cls{text-align:left;min-width:88px;background:#FBF7EC;font-weight:bold;color:#1B2A4A;}
+table.grid td.c-sum,table.grid th.c-sum{background:#FBF7EC;}
+table.grid td.c-rank,table.grid th.c-rank{background:#FBF7EC;width:44px;}
+table.rec-tbl{margin-top:8pt;}
+table.rec-tbl th,table.rec-tbl td{border:1px solid #444;padding:4pt;text-align:center;font-size:10.5pt;}
+table.rec-tbl th{background:#EFEBE0;}
+@media print{ /* 【v4.77】A4 打印：每级部一页，字号收紧塞得下 */
+  .tbl-wrap{overflow:visible;}
+  table.grid{min-width:0;font-size:8.5pt;}
+  table.grid th,table.grid td{padding:2.5pt 3pt;}
+  .paper{box-shadow:none;border:none;margin:0;padding:0;page-break-after:always;}
+  .pv-tag{display:none;}
+}
+@page{size:A4 portrait;margin:12mm;}
 </style>
 <style>
   header.top{background:linear-gradient(120deg,#14213D,#1B2A4A);color:#fff;border-radius:16px;padding:24px 26px;margin:16px 0;position:relative;overflow:hidden;}
@@ -86,7 +104,7 @@
     <div class="empty">加载中…</div>
   </div>
 
-  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v1 ｜ 调用 M8 计分引擎实时生成<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读</footer>
+  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.77】｜ 各级部金标准宽表（单位+项目得分+总分+名次）<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
 </div>
 
 <script>
@@ -102,59 +120,74 @@ function gradeOf(cn){
 }
 function gName(g){return ["","一年级","二年级","三年级","四年级","五年级","六年级"][g]||"其他";}
 
-/* 生成 A4 纸页（每年级一张 + 总分榜一张） */
+/* 【v4.77】生成 A4 纸页：每级部一张金标准宽表（单位+各项目得分+总分+名次），不再出全校总榜 */
+function gradeSortKey(cn){ /* "四年级1班"→级部+班号，保证 1班→2班…顺序 */
+  var g=gradeOf(cn)||9;
+  var m=String(cn).match(/(\d+)\s*班/);
+  return g*100+(m?parseInt(m[1],10):99);
+}
 function buildPapers(){
   var tot=DATA.classTotals||{};
   var det=DATA.detail||{};
   var recLog=DATA.recLog||[];
-  var c=DATA.config||{};
-  /* 按年级分班 */
+  var evNames=(DATA.eventNames&&DATA.eventNames.length)?DATA.eventNames.slice():Object.keys(det);
+  var classes=(DATA.classNames&&DATA.classNames.length)?DATA.classNames.slice():Object.keys(tot);
+  /* 班级+有接力得分但不在班级表的队名兜底 */
+  Object.keys(det).forEach(function(ev){
+    det[ev].forEach(function(it){ if(it.className&&classes.indexOf(it.className)<0)classes.push(it.className); });
+  });
   var byGrade={};
-  Object.keys(tot).forEach(function(cls){
+  classes.forEach(function(cls){
     var g=gradeOf(cls)||0;
     if(!byGrade[g])byGrade[g]=[];
-    byGrade[g].push({cls:cls,pts:tot[cls]});
+    byGrade[g].push(cls);
+  });
+  /* 班×项目得分矩阵 */
+  var cell={}; /* cls|ev → 分 */
+  Object.keys(det).forEach(function(ev){
+    det[ev].forEach(function(it){
+      if(!it.className)return;
+      var k=it.className+"\u0001"+ev;
+      cell[k]=(cell[k]||0)+(it.pts||0)+(it.recPts||0);
+    });
   });
   var html="";
-
-  /* 第1张：全校总分榜 */
-  html+='<div class="paper"><span class="pv-tag">A4 · 总分榜</span><div class="doc">';
-  html+='<h2>班级总分榜</h2><div class="sub">（全部年级 · 男女混合计 · 含破纪录加分）</div>';
-  html+='<table><tr><th>名次</th><th>班级</th><th>总分</th></tr>';
-  var all=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a]});
-  all.forEach(function(cls,i){
-    var cls3=i<3?(" top"+(i+1)):"";
-    html+='<tr'+cls3+'><td><span class="r1">'+(i+1)+'</span></td><td>'+esc(cls)+'</td><td><b>'+tot[cls]+'</b></td></tr>';
-  });
-  if(!all.length)html+='<tr><td colspan="3">暂无得分数据</td></tr>';
-  html+='</table></div></div>';
-
-  /* 每年级一张：本年级名次 + 本年级破纪录 */
   Object.keys(byGrade).sort(function(a,b){return a-b}).forEach(function(g){
-    var arr=byGrade[g].sort(function(a,b){return b.pts-a.pts});
-    html+='<div class="paper"><span class="pv-tag">A4 · '+gName(g)+'</span><div class="doc">';
-    html+='<h2>'+gName(g)+'成绩汇总表</h2><div class="sub">（平行班比较 · 男女分开计分 · 破纪录另加）</div>';
-    html+='<table><tr><th>名次</th><th>班级</th><th>总分</th></tr>';
-    arr.forEach(function(it,i){
-      var cls3=i<3?(" top"+(i+1)):"";
-      html+='<tr'+cls3+'><td><span class="r1">'+(i+1)+'</span></td><td>'+esc(it.cls)+'</td><td><b>'+it.pts+'</b></td></tr>';
+    var arr=byGrade[g].slice().sort(gradeSortKey); /* 行序=班号序（金标准） */
+    var gcls=arr;
+    /* 名次：总分降序，同分并列同名次 */
+    var ranked=gcls.map(function(c){return {cls:c,pts:tot[c]||0};}).sort(function(a,b){return b.pts-a.pts});
+    var rankMap={};
+    ranked.forEach(function(it,i){ rankMap[it.cls]=(i>0&&ranked[i-1].pts===it.pts)?rankMap[ranked[i-1].cls]:(i+1); });
+    html+='<div class="paper"><span class="pv-tag">A4 · '+gName(Number(g)||0)+'</span><div class="doc">';
+    html+='<h2>'+(Number(g)?gName(Number(g)):"其他")+'运动会总成绩</h2><div class="sub">（平行班比较 · 男女分开计分 · 破纪录另加 · 名次并列同分）</div>';
+    html+='<div class="tbl-wrap"><table class="grid"><tr><th class="c-cls">单位</th>';
+    evNames.forEach(function(ev){ html+='<th>'+esc(ev)+'</th>'; });
+    html+='<th class="c-sum">总分</th><th class="c-rank">名次</th></tr>';
+    gcls.forEach(function(cls){
+      var r=rankMap[cls];
+      var top=r<=3?(" top"+r):"";
+      html+='<tr'+top+'><td class="c-cls">'+esc(cls)+'</td>';
+      evNames.forEach(function(ev){ var v=cell[cls+"\u0001"+ev]||0; html+='<td>'+(v||"")+'</td>'; });
+      html+='<td class="c-sum"><b>'+(tot[cls]||0)+'</b></td><td class="c-rank"><span class="r1">'+(r||"")+'</span></td></tr>';
     });
-    html+='</table>';
-    /* 本年级破纪录 */
-    var no2class={};
-    /* 号码→班级映射需从detail里带（破纪录只有no）——从积分明细补 */
+    if(!gcls.length)html+='<tr><td colspan="'+(evNames.length+3)+'">本级部暂无班级数据</td></tr>';
+    html+='</table></div>';
+    /* 本年级破纪录（沿用原有块，样式收窄） */
     var recs=recLog.filter(function(r){
-      var cls=no2class[r.no]||"";
+      var cls=(function(){ /* recLog 只有 no——从 detail 反查班级 */
+        for(var ev in det){ var hit=det[ev].filter(function(x){return x.no===r.no&&x.name===r.name;})[0]; if(hit&&hit.className)return hit.className; }
+        return "";
+      })();
       return gradeOf(cls)===Number(g);
     });
     if(recs.length){
-      html+='<div style="height:14pt"></div><table><tr><th colspan="4">本年级破纪录</th></tr><tr><th>场次</th><th>号码</th><th>姓名</th><th>加分</th></tr>';
+      html+='<div style="height:14pt"></div><table class="rec-tbl"><tr><th colspan="4">本年级破纪录</th></tr><tr><th>场次</th><th>号码</th><th>姓名</th><th>加分</th></tr>';
       recs.forEach(function(r){html+='<tr><td>'+esc(r.event)+'</td><td>'+esc(r.no)+'</td><td>'+esc(r.name)+'</td><td><span class="rec-badge">+'+r.extra+'</span></td></tr>';});
       html+='</table>';
     }
     html+='</div></div>';
   });
-
   el("papers").innerHTML=html;
 }
 
