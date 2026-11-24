@@ -73,7 +73,7 @@
 
   <div class="card">
     <h2>🖨 输出</h2>
-    <div class="hint">现场用表：赛前批量打印分发各裁判组。径赛表（60米等）按道次录成绩；田赛表（跳高/跳远等）每运动员三次试跳成绩格；接力表按班级。全部页面号码姓名已从报名表预填——裁判只需写数字。</div>
+    <div class="hint">现场用表：赛前批量打印分发各裁判组。径赛与接力表道次列留空（运动员现场抽签定道次，记录员手填）；田赛表（跳高/跳远等）每运动员三次试跳成绩格。全部页面号码姓名已从报名表预填——裁判只需写数字。</div>
     <button class="btn" type="button" id="btnWord">⬇ 下载 Word 版（A4 全部场次）</button>
     <button class="btn-ghost" type="button" id="btnPrint">🖨 打印 / 存 PDF</button>
     <div class="msg" id="msg"></div>
@@ -139,7 +139,7 @@ function buildPapers(){
         var n=ma.list.length||4;
         for(var i=0;i<Math.max(n,4);i++){
           var t=ma.list[i];
-          html+='<tr><td>'+(i+1)+'</td><td style="text-align:left;padding-left:8pt">'+(t?('　'+esc(t.name)):'')+'</td><td></td><td></td></tr>';
+          html+='<tr><td></td><td style="text-align:left;padding-left:8pt">'+(t?('　'+esc(t.name)):'')+'</td><td></td><td></td></tr>'; /* 【v4.81】道次留空：现场抽签手填 */
         }
         html+='</table>';
       }else if(ma.isField){
@@ -151,9 +151,9 @@ function buildPapers(){
         html+='</table>';
       }else{
         html+='<table><tr><th style="width:12%">道次</th><th style="width:12%">号码</th><th style="width:26%">姓名</th><th style="width:20%">成绩</th><th style="width:12%">名次</th></tr>';
-        if(!ma.list.length){for(var i=0;i<8;i++)html+='<tr><td>'+(i+1)+'</td><td></td><td></td><td></td><td></td></tr>';}
+        if(!ma.list.length){for(var i=0;i<8;i++)html+='<tr><td></td><td></td><td></td><td></td><td></td></tr>';} /* 【v4.81】空行道次也不预填 */
         ma.list.forEach(function(a,i){
-          html+='<tr><td>'+(i+1)+'</td><td>'+esc(a.no)+'</td><td style="text-align:left;padding-left:8pt">'+esc(a.name)+'<span style="color:#666;font-size:9pt">（'+esc(shortCls(a.cls))+'）</span></td><td></td><td></td></tr>';
+          html+='<tr><td></td><td>'+esc(a.no)+'</td><td style="text-align:left;padding-left:8pt">'+esc(a.name)+'<span style="color:#666;font-size:9pt">（'+esc(shortCls(a.cls))+'）</span></td><td></td><td></td></tr>';
         });
         html+='</table>';
       }
