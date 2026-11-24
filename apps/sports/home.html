@@ -150,10 +150,11 @@ el("btnPw").addEventListener("click",function(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.ok){m.style.color="#2E7D4F";m.textContent="✅ "+d.msg+"，正在退出登录并跳转到登录页…";
-        /* 【v4.82】先作废当前会话（logout），再跳真登录页 /soft/__auth —— 保证必须用新密码重新登录 */
+        /* 【v4.82b】先 POST logout 作废会话（清 sports_auth cookie），再跳工作台地址——
+           登录页没有独立网址，未登录访问受保护页时自动弹出登录页，登录成功后回工作台 */
         setTimeout(function(){
           fetch("/soft/__auth/logout",{method:"POST"}).catch(function(){}).finally(function(){
-            location.replace("/soft/__auth");
+            location.replace("/soft/sports/home.html");
           });
         },1800);}
       else{m.style.color="#B03A2E";m.textContent=d.msg||"修改失败";}
