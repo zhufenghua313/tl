@@ -67,7 +67,7 @@
     <div class="sec-title" id="secView">查看（只读）</div>
     <div class="grid" id="gridView"></div>
   </div>
-  <footer class="foot">运动会管理系统 · 角色工作台 v1 ｜ 三种身份三种界面<br>班主任=报名+查看 · 成绩录入员=录成绩+查看 · 管理员=全部权限</footer>
+  <footer class="foot">本系统免费提供使用。使用即视为同意：开发者不对数据出错、丢失、服务中断承担赔偿责任——重要数据请用「新学年归档」页的下载功能自行备份。<br>运动会管理系统 · 角色工作台 v1 ｜ 三种身份三种界面<br>班主任=报名+查看 · 成绩录入员=录成绩+查看 · 管理员=全部权限</footer>
 </div>
 
 <script>
@@ -113,6 +113,7 @@ function render(){
     el("hSub").innerHTML="您好，<span class='who'>"+(isMaster?"总管理员":ME.username)+"</span> "+(isMaster?"—— 全部权限":"—— 规则参数与账号管理")+'<span class="badge">'+(isMaster?"总管理员":"程序管理员")+"</span>";
     main+=tile("/soft/sports/index.html","⚙️","基础配置","学校信息 · 项目 · 年级 · 计分规则（含破纪录政策）");
     main+=tile("/soft/sports/accounts.html","👥","账号管理","管理员/班主任/录入员账号 + 年级班级批量开通");
+    main+=tile("/soft/sports/archive.html","🗂️","新学年归档","本届数据封存进档案库 · 清空开启新一届 · 下载/上传/恢复");
     main+=tile("/soft/sports/numbers.html","🔢","号码总览","报名完成后一键生成全校连排号码");
     main+=tile("/soft/sports/score.html","✏️","成绩录入","管理员可补录（不受时间窗限制）");
     main+=tile("/soft/sports/schedule.html","📅","赛程管理","自动生成 + 上下移微调");
