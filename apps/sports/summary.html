@@ -49,7 +49,9 @@
   @keyframes br{50%{opacity:.35;}}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;} /* 【v4.77】手机端宽表横向滑动 */
 table.grid{min-width:640px;font-size:12px;}
-table.grid th,table.grid td{border:1px solid #B8AC8F;padding:4px 6px;text-align:center;white-space:nowrap;}
+table.grid th,table.grid td{border:1px solid #B8AC8F;padding:4px 6px;text-align:center;}
+table.grid th{white-space:normal;line-height:1.3;} /* 【v4.79】列头两行；td 保持单行 */
+table.grid td{white-space:nowrap;}
 table.grid th{background:#F7F1E3;color:#5B4A1E;font-weight:bold;}
 table.grid td.c-cls,table.grid th.c-cls{text-align:left;min-width:88px;background:#FBF7EC;font-weight:bold;color:#1B2A4A;}
 table.grid td.c-sum,table.grid th.c-sum{background:#FBF7EC;}
@@ -104,7 +106,7 @@ table.rec-tbl th{background:#EFEBE0;}
     <div class="empty">加载中…</div>
   </div>
 
-  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.78】｜ 各级部宽表只列本年级项目 · 列名去年级前缀与预决赛字样<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
+  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.79】｜ 班名4.1班格式 · 列头两行 · 各级部只列本年级项目<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
 </div>
 
 <script>
@@ -125,6 +127,16 @@ function gradeSortKey(cn){ /* "四年级1班"→级部+班号，保证 1班→2�
   var g=gradeOf(cn)||9;
   var m=String(cn).match(/(\d+)\s*班/);
   return g*100+(m?parseInt(m[1],10):99);
+}
+var CN2NUM={"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
+function shortCls(cls){ /* 【v4.79】班名缩短：四年级1班→4.1班（金标准格式），无班号原样 */
+  var m=String(cls).match(/^([一二三四五六])年级(\d+)班$/);
+  return m?(CN2NUM[m[1]]+"."+m[2]+"班"):cls;
+}
+function evHead(ev){ /* 【v4.79】列头拆两行：男子<br>60米 / 4×100米<br>混合接力 —— 宽度再省一半 */
+  return esc(evShort(ev))
+    .replace(/^(男子|女子)/,"$1<br>")
+    .replace(/((?:\d+×\d+|\d+)米)(?=[^<\s])/,  "$1<br>"); /* 【v4.79】只在后面还有字才断，避免尾部空<br> */
 }
 function evShort(ev){ /* 【v4.78】列名精简：剥"X年级"前缀+去"预/决赛"字样（标题已有年级） */
   return String(ev).replace(/^[一二三四五六]+年级/,"").replace(/(预决赛|预赛|决赛)/g,"");
@@ -188,12 +200,12 @@ function buildPapers(){
     html+='<div class="paper"><span class="pv-tag">A4 · '+gName(Number(g)||0)+'</span><div class="doc">';
     html+='<h2>'+(Number(g)?gName(Number(g)):"其他")+'运动会总成绩</h2><div class="sub">（平行班比较 · 男女分开计分 · 破纪录另加 · 名次并列同分）</div>';
     html+='<div class="tbl-wrap"><table class="grid"><tr><th class="c-cls">单位</th>';
-    evG.forEach(function(ev){ html+='<th>'+esc(evShort(ev))+'</th>'; });
+    evG.forEach(function(ev){ html+='<th>'+evHead(ev)+'</th>'; });
     html+='<th class="c-sum">总分</th><th class="c-rank">名次</th></tr>';
     gcls.forEach(function(cls){
       var r=rankMap[cls];
       var top=r<=3?(" top"+r):"";
-      html+='<tr'+top+'><td class="c-cls">'+esc(cls)+'</td>';
+      html+='<tr'+top+'><td class="c-cls">'+esc(shortCls(cls))+'</td>';
       evG.forEach(function(ev){ var v=cell[cls+"\u0001"+ev]||0; html+='<td>'+(v||"")+'</td>'; });
       html+='<td class="c-sum"><b>'+(tot[cls]||0)+'</b></td><td class="c-rank"><span class="r1">'+(r||"")+'</span></td></tr>';
     });
