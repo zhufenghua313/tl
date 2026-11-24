@@ -1,7 +1,7 @@
 // 欢乐运动会 · 多校总管理网关 (sports-gateway)
 // 职责：/sports=总后台 | /sports/<slug>/*=分诊转发(过渡型) | 未注册=404
 var CF_ACC = "1feeb9418369602b80a31685e412601f";
-var ZONE = ""; // 部署后回填
+var ZONE = "e4f1a0aa568e1b30b5253ad5870a6269"; // 部署后回填
 
 async function sha256Hex(s) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -98,7 +98,7 @@ var go=function(){
 fetch("/sports/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pwd:document.getElementById("pw").value})})
 .then(function(r){return r.json()}).then(function(d){
 if(d.ok){location.reload()}else{var m=document.getElementById("msg");m.className="msg err";m.textContent=d.msg||"密码不对"}
-}).catch(function(){var m=document.getElementById("msg");m.className="msg err";m.textContent="网络异常"};
+}).catch(function(){var m=document.getElementById("msg");m.className="msg err";m.textContent="网络异常"});
 };
 document.getElementById("go").onclick=go;
 document.getElementById("pw").addEventListener("keydown",function(e){if(e.key==="Enter")go()});
@@ -294,10 +294,19 @@ var worker_default = {
         if (body.hint !== undefined) s.pwdHint = String(body.hint).slice(0, 100);
         if (body.note !== undefined) s.note = String(body.note).slice(0, 200);
         if (body.status === "paused" && s.status === "active") {
-          if (s.type === "worker" && s.routeId) { const r = await (await cf("DELETE", `/zones/${env.ZONE_ID}/workers/routes/${s.routeId}`)).json(); if (!r.success) return j({ ok: false, msg: "停用失败" }); }
+          if (s.type === "worker" && s.routeId) { const r = await (await cf("DELETE", `/zones/${env.ZONE_ID}/workers/routes/${s.routeId}`)).json(); const notFound0 = !r.success && r.errors && r.errors[0] && (r.errors[0].code === 10007 || String(r.errors[0].message || "").includes("does not exist")); if (!r.success && !notFound0) return j({ ok: false, msg: "停用失败" }); }
           s.status = "paused";
         } else if (body.status === "active" && s.status === "paused") {
-          if (s.type === "worker") { const r = await (await cf("POST", `/zones/${env.ZONE_ID}/workers/routes`, { pattern: "tl.efcc.cc/sports/" + s.slug + "*", script: s.worker })).json(); if (!r.success) return j({ ok: false, msg: "启用失败" }); s.routeId = r.result.id; }
+          if (s.type === "worker") {
+            const pat0 = "tl.efcc.cc/sports/" + s.slug + "*";
+            let r = await (await cf("POST", `/zones/${env.ZONE_ID}/workers/routes`, { pattern: pat0, script: s.worker })).json();
+            if (!r.success) {
+              const lr = await (await cf("GET", `/zones/${env.ZONE_ID}/workers/routes`)).json();
+              if (lr.success) { const ex0 = (lr.result || []).find((x) => x.pattern === pat0); if (ex0) { r = { success: true, result: ex0 }; } }
+            }
+            if (!r.success) return j({ ok: false, msg: "启用失败" });
+            s.routeId = r.result.id;
+          }
           s.status = "active";
         }
         await saveRoutes(env, rs);
