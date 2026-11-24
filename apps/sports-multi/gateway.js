@@ -104,7 +104,7 @@ document.getElementById("go").onclick=go;
 document.getElementById("pw").addEventListener("keydown",function(e){if(e.key==="Enter")go()});
 </script></body></html>`;
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>运动会总管理 · 多校调度</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314233b'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle'%3E%F0%9F%8F%86%3C/text%3E%3C/svg%3E"><style>${css}</style></head><body>
-<nav><div class="nav-in"><div class="brand"><span class="ic">🏆</span><div><b>运动会总管理</b><span>多校版 · 调度中枢</span></div></div></div><button class="btn-out" id="out">🚪 退出登录</button></div></nav>
+<nav><div class="nav-in"><div class="brand"><span class="ic">🏆</span><div><b>运动会总管理</b><span>多校版 · 调度中枢</span></div></div></div><a class="btn-out" href="/sports/" style="text-decoration:none">🏠 主页</a><button class="btn-out" id="out">🚪 退出登录</button></div></nav>
 <div class="wrap">
 <div class="card"><h1>🏫 各校运动会程序</h1><p class="sub">每校独立程序+独立数据库 · 互不影响 · 点学校地址直达</p>
 <div style="overflow-x:auto;margin-top:12px"><table id="tb"><thead><tr><th>学校名称</th><th>访问地址</th><th>状态</th><th class="hideM">建立时间</th><th class="hideM">密码提示</th><th>操作</th></tr></thead><tbody id="tbBody"><tr><td colspan="6" style="color:#5B6577">加载中…</td></tr></tbody></table></div>
@@ -196,40 +196,9 @@ function notePage(title, text) {
   return html(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head><body style="background:#14213D;font-family:system-ui,sans-serif"><div style="color:#E8BC4F;text-align:center;padding:38vh 20px 0;font-size:19px">${text}</div><div style="text-align:center;margin-top:18px"><a href="/sports" style="color:#8FA3C8;font-size:14px;text-decoration:none">← 返回运动会总管理</a></div></body></html>`);
 }
 
-var worker_default = {
-  async fetch(request, env) {
-    env0 = env;
-    const url = new URL(request.url);
-    let pathname = decodeURIComponent(url.pathname);
-    if (pathname === "/sports" || pathname === "/sports/") {
-      const authed = await isAuthed(request, env);
-      return html(adminPage(authed));
-    }
-    if (pathname.startsWith("/sports/api/")) {
-      const ep = pathname.slice("/sports/api/".length);
-      if (request.method === "POST" && ep === "login") {
-        const { pwd } = await request.json().catch(() => ({}));
-        const ph = await env.GW_KV.get("pw_hash_gw");
-        if (!ph || !pwd || await sha256Hex(pwd) !== ph) return j({ ok: false, msg: "密码不对" }, 401);
-        const tok = await sha256Hex(ph + "-gw-session");
-        return j({ ok: true }, 200, "gw_auth=" + tok + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800");
-      }
-      if (!await isAuthed(request, env)) return j({ ok: false, msg: "未登录" }, 401);
-      if (ep === "logout") return j({ ok: true }, 200, "gw_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
-      if (ep === "list") {
-        const rs = await routes(env);
-        return j({ ok: true, schools: rs.map((r) => ({ slug: r.slug, name: r.name, type: r.type, status: r.status, createdAt: r.createdAt, pwdHint: r.pwdHint || "", note: r.note || "" })) });
-      }
-      if (ep === "change-pw" && request.method === "POST") {
-        const { old: oldPw, "new": newPw } = await request.json().catch(() => ({}));
-        const ph = await env.GW_KV.get("pw_hash_gw");
-        if (!ph || !oldPw || await sha256Hex(oldPw) !== ph) return j({ ok: false, msg: "原密码不对" });
-        if (!newPw || newPw.length < 6) return j({ ok: false, msg: "新密码至少 6 位" });
-        await env.GW_KV.put("pw_hash_gw", await sha256Hex(newPw));
-        return j({ ok: true }, 200, "gw_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
-      }
-      if (ep === "create" && request.method === "POST") {
-        const { name, slug, pwd, hint } = await request.json().catch(() => ({}));
+async function doCreate(env, body) {
+        const { name, slug, pwd, hint } = body || {};
+  if (["admin", "api", "sports", "www", "reg", "login", "root", "home"].includes(slug)) return j({ ok: false, msg: "该拼音后缀是系统保留字，请换一个" });
         if (!name || !slug || !pwd) return j({ ok: false, msg: "信息不全" });
         if (!/^[a-z][a-z0-9-]{0,19}$/.test(slug)) return j({ ok: false, msg: "拼音前缀只能用小写字母/数字/短横线，2-20位" });
         if (pwd.length < 6) return j({ ok: false, msg: "初始密码至少 6 位" });
@@ -271,6 +240,161 @@ var worker_default = {
           return j({ ok: false, msg: "开通失败已回滚：" + (e.message || e) });
         }
       }
+function landingPage() {
+  const css = `
+:root{--deep:#14213D;--deep2:#1D2D50;--gold:#E8BC4F;--bg:#F4F6FA;--card:#fff;--sub:#5B6577;--ok:#2E9E5B;--err:#D64545;--line:#DFE4EC}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#22303F;min-height:100vh}
+nav{background:var(--deep);color:#fff}
+.nav-in{max-width:960px;margin:0 auto;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+.brand .ic{font-size:22px}
+.brand small{font-size:12px;opacity:.72;font-weight:400}
+.btn-adm{background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:13px;padding:6px 13px;cursor:pointer;text-decoration:none;font-weight:600;white-space:nowrap}
+.wrap{max-width:960px;margin:0 auto;padding:24px 16px 30px}
+.hero{text-align:center;margin-bottom:22px}
+.hero h1{font-size:25px;color:var(--deep)}
+.hero h1 em{color:var(--gold);font-style:normal}
+.hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
+.feat{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.feat span{font-size:12px;color:#1D2D50;background:rgba(232,188,79,.16);border:1px solid rgba(232,188,79,.45);border-radius:999px;padding:4px 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(20,33,61,.04)}
+.card h2{font-size:17px;color:var(--deep);display:flex;align-items:center;gap:8px}
+.card .sub{font-size:12.5px;color:var(--sub);margin:4px 0 16px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:#22303F}
+.field input:focus,.field select:focus{outline:none;border-color:var(--gold)}
+.p{width:100%;background:var(--deep);color:var(--gold);border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.p:hover{background:var(--deep2)}
+.p.gold{background:var(--gold);color:var(--deep)}
+.msg{font-size:13px;margin-top:10px;min-height:18px}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
+.tea{font-size:12.5px;color:var(--sub);margin-top:12px;text-align:center}
+.tea a{color:var(--deep);font-weight:600}
+.foot{max-width:960px;margin:0 auto;padding:6px 16px 44px;text-align:center;font-size:13px;color:var(--sub)}
+.foot a{color:var(--deep);text-decoration:none;font-weight:700}
+.foot a:hover{color:var(--gold)}
+`;
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>运动会管理系统 · 多校版</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314233b'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle'%3E🏃%3C/text%3E%3C/svg%3E"><style>${css}</style></head><body>
+<nav><div class="nav-in">
+  <div class="brand"><span class="ic">🏃</span><div>运动会管理系统 <small>多校版</small></div></div>
+  <a class="btn-adm" href="/sports/admin">⚙️ 后台管理</a>
+</div></nav>
+<div class="wrap">
+  <div class="hero">
+    <h1>🏃 学校运动会 <em>一站式管理</em></h1>
+    <p>报名、计分、汇总全自动 —— 每校独立程序、独立数据，互不影响</p>
+    <div class="feat"><span>📝 班主任报名</span><span>✏️ 成绩录入</span><span>📊 实时积分榜</span><span>📦 学年归档复用</span></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h2>🔑 进入本校系统</h2>
+      <p class="sub">选择学校 + 总管理员密码，直达您学校的运动会工作台</p>
+      <form id="fL" method="POST" action="/soft/__auth">
+        <div class="field"><label>选择学校</label><select id="sch"><option value="">加载中…</option></select></div>
+        <div class="field"><label>总管理员密码</label><input type="password" name="password" placeholder="本校总管理员密码" required></div>
+        <input type="hidden" name="rt" value="admin">
+        <input type="hidden" name="next" value="/apps/sports/home.html">
+        <button class="p" type="submit" id="go">进 入 →</button>
+      </form>
+      <div class="tea">班主任 / 成绩录入员：<a id="tea" href="/sports/">到学校登录页选身份</a></div>
+      <div class="msg" id="msgL"></div>
+    </div>
+    <div class="card">
+      <h2>🏫 开通新学校</h2>
+      <p class="sub">填好信息即刻生成贵校专属系统（网址：tl.efcc.cc/sports/贵校拼音）</p>
+      <div class="field"><label>学校名称</label><input id="rName" placeholder="如：实验小学"></div>
+      <div class="field"><label>拼音后缀（小写字母，作网址用）</label><input id="rSlug" placeholder="如 shixiao → /sports/shixiao"></div>
+      <div class="field"><label>本校总管理员密码（至少6位）</label><input id="rPw" type="password" placeholder="建议好记的长密码"></div>
+      <div class="field"><label>密码提示（备忘，不存明文）</label><input id="rHint" placeholder="如：校名简称+年份"></div>
+      <div class="field"><label>注册口令（防滥用，向站长索取）</label><input id="rCode" placeholder="凭口令开通"></div>
+      <button class="p gold" id="btnReg" type="button">🚀 立即开通</button>
+      <div class="msg" id="msgR"></div>
+    </div>
+  </div>
+</div>
+<div class="foot">← <a href="/">返回欢乐工具站</a> ｜ 运动会管理系统 · 欢乐出品</div>
+<script>
+var schSel=document.getElementById("sch");
+function esc(x){return String(x).replace(/</g,"&lt;")}
+function syncA(){var v=schSel.value;if(v){document.getElementById("fL").action="/sports/"+v+"/soft/__auth";document.getElementById("tea").href="/sports/"+v+"/"}}
+fetch("/sports/api/schools").then(function(r){return r.json()}).then(function(d){
+if(!d.ok||!d.schools.length){schSel.innerHTML='<option value="">暂无学校 · 请先在旁边开通</option>';document.getElementById("go").disabled=true;return}
+schSel.innerHTML=d.schools.map(function(x){return '<option value="'+esc(x.slug)+'">'+esc(x.name)+"</option>"}).join("");
+syncA();
+}).catch(function(){schSel.innerHTML='<option value="">学校列表加载失败，刷新重试</option>'});
+schSel.onchange=syncA;
+document.getElementById("btnReg").onclick=function(){
+var name=document.getElementById("rName").value.trim();
+var slug=document.getElementById("rSlug").value.trim().toLowerCase();
+var pw=document.getElementById("rPw").value;
+var hint=document.getElementById("rHint").value.trim();
+var code=document.getElementById("rCode").value.trim();
+var m=document.getElementById("msgR");
+if(!name||!slug||!pw||!code){m.className="msg err";m.textContent="请把学校名称、拼音后缀、密码、注册口令都填上";return}
+m.className="msg";m.textContent="开通中，约需十几秒…";
+fetch("/sports/api/reg",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,slug:slug,pwd:pw,hint:hint,code:code})})
+.then(function(r){return r.json()}).then(function(d){
+if(d.ok){m.className="msg ok";m.textContent="✅ 已开通！地址 /sports/"+esc(slug)+"，正在带您前往…";setTimeout(function(){location.href="/sports/"+slug},1700)}
+else{m.className="msg err";m.textContent=d.msg||"开通失败"}
+}).catch(function(){m.className="msg err";m.textContent="网络异常，请重试"});
+};
+</script></body></html>`;
+}
+
+var worker_default = {
+  async fetch(request, env) {
+    env0 = env;
+    const url = new URL(request.url);
+    let pathname = decodeURIComponent(url.pathname);
+    if (pathname === "/sports/admin" || pathname === "/sports/admin/") {
+      const authed = await isAuthed(request, env);
+      return html(adminPage(authed));
+    }
+    if (pathname === "/sports" || pathname === "/sports/") return html(landingPage());
+    if (pathname.startsWith("/sports/api/")) {
+      const ep = pathname.slice("/sports/api/".length);
+      if (request.method === "POST" && ep === "login") {
+        const { pwd } = await request.json().catch(() => ({}));
+        const ph = await env.GW_KV.get("pw_hash_gw");
+        if (!ph || !pwd || await sha256Hex(pwd) !== ph) return j({ ok: false, msg: "密码不对" }, 401);
+        const tok = await sha256Hex(ph + "-gw-session");
+        return j({ ok: true }, 200, "gw_auth=" + tok + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800");
+      }
+      if (ep === "schools" && request.method === "GET") {
+        const rs = await routes(env);
+        return j({ ok: true, schools: rs.filter((r) => r.status === "active").map((r) => ({ slug: r.slug, name: r.name })) });
+      }
+      if (ep === "reg" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const want = await env.GW_KV.get("reg_code");
+        if (!want || !body.code || body.code !== want) return j({ ok: false, msg: "注册口令不对（开通请向站长索取口令）" }, 403);
+        return doCreate(env, body);
+      }
+      if (!await isAuthed(request, env)) return j({ ok: false, msg: "未登录" }, 401);
+      if (ep === "logout") return j({ ok: true }, 200, "gw_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
+      if (ep === "set-reg-code" && request.method === "POST") {
+        const { code } = await request.json().catch(() => ({}));
+        if (!code || String(code).length < 4) return j({ ok: false, msg: "注册口令至少 4 位" });
+        await env.GW_KV.put("reg_code", String(code).slice(0, 60));
+        return j({ ok: true });
+      }
+      if (ep === "list") {
+        const rs = await routes(env);
+        return j({ ok: true, schools: rs.map((r) => ({ slug: r.slug, name: r.name, type: r.type, status: r.status, createdAt: r.createdAt, pwdHint: r.pwdHint || "", note: r.note || "" })) });
+      }
+      if (ep === "change-pw" && request.method === "POST") {
+        const { old: oldPw, "new": newPw } = await request.json().catch(() => ({}));
+        const ph = await env.GW_KV.get("pw_hash_gw");
+        if (!ph || !oldPw || await sha256Hex(oldPw) !== ph) return j({ ok: false, msg: "原密码不对" });
+        if (!newPw || newPw.length < 6) return j({ ok: false, msg: "新密码至少 6 位" });
+        await env.GW_KV.put("pw_hash_gw", await sha256Hex(newPw));
+        return j({ ok: true }, 200, "gw_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
+      }
+            if (ep === "create" && request.method === "POST") return doCreate(env, await request.json().catch(() => ({})));
       if (ep === "reset-pwd" && request.method === "POST") {
         const { slug, pwd } = await request.json().catch(() => ({}));
         if (!pwd || pwd.length < 6) return j({ ok: false, msg: "新密码至少 6 位" });
