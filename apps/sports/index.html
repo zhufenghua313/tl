@@ -532,7 +532,7 @@ $("evBody").addEventListener("change",function(e){
 function townPool(cur){ /* 项目池：比赛项目实时推导 + localStorage 历史池 + 当前值兜底 */
   var set={},arr=[];
   var push=function(n){ n=(n||"").trim(); if(n&&!set[n]){set[n]=1;arr.push(n);} };
-  document.querySelectorAll('#evTbody tr').forEach(function(tr){
+  document.querySelectorAll('#evBody tr').forEach(function(tr){
     var ni=tr.querySelector('[data-ek="name"]'); if(!ni)return;
     var name=(ni.value||"").trim(); if(!name)return;
     var fs=tr.querySelector('[data-ek="form"]');
@@ -563,6 +563,7 @@ function recRowAdd(tbId,std,value,holder,date,unit){
       +pool.map(function(n){return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('')
       +'<option value="__add__">＋新增项目…</option>'; };
   fill();
+  sel.addEventListener("mousedown",function(){ cur=sel.value&&sel.value!=="__add__"?sel.value:cur; fill(); }); /* 每次点开现读比赛项目表（防配置未加载时的空池） */
   sel.addEventListener("change",function(){
     if(sel.value!=="__add__")return;
     var n=(prompt("新增项目名（规则：男子/女子+项目名，如 男子800米；接力=混合4×100米）:")||"").trim();
