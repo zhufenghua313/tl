@@ -84,6 +84,7 @@
   @keyframes br{50%{opacity:.35;}}
 .crumbs{display:flex;gap:2px;align-items:center;justify-content:center;font-size:13px;padding:5px 10px 7px;background:rgba(0,0,0,.20);flex-wrap:wrap}.crumbs a{color:#E8BC4F;text-decoration:none;padding:4px 7px;border-radius:6px;flex-shrink:0}.crumbs a:active{background:rgba(255,255,255,.15)}.crumbs b{color:rgba(255,255,255,.95);font-weight:600;flex-shrink:0}.crumbs .sep{color:rgba(255,255,255,.35);flex-shrink:0}
 @media (max-width:768px){ /* 【v4.75】手机端：镇记录每行→竖排卡片 */
+  table{min-width:0!important;} /* 【v4.75b】全局表格640px最小宽=手机溢出元凶，窄屏解除 */
   .town-head{display:none;}
   .town-tbody,.town-tbody tr{display:block;width:100%;}
   .town-tbody tr{border:1px solid #E3D9C2;border-radius:10px;margin:0 0 12px;padding:10px 40px 10px 10px;background:#FFFDF7;position:relative;}
@@ -163,7 +164,7 @@
   </div>
 
   <div class="card">
-    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.75】手机端镇记录卡片化（窄屏每行→竖排卡片，label左输入右） · 成绩格自动带单位 · 破纪录即时比对 · 输入即自动保存 · Excel式键盘导航</span></div>
+    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.75b】手机端卡片化+溢出修复（全局表格窄屏解除640最小宽） · 成绩格自动带单位 · 破纪录即时比对 · 输入即自动保存 · Excel式键盘导航</span></div>
     <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目下拉自动列出比赛项目推导的选项（男子/女子 + 项目名，接力=混合）；下拉尾部「＋新增项目…」可添加历史项目（以前有、现在不比赛的项目也可留档）。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
     <div style="margin-top:10px;">
       <div style="margin-bottom:18px;">
