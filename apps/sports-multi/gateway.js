@@ -310,7 +310,6 @@ nav{background:var(--deep);color:#fff}
       <div class="field"><label>拼音后缀（小写字母，作网址用）</label><input id="rSlug" placeholder="如 shixiao → /sports/shixiao"></div>
       <div class="field"><label>本校总管理员密码（至少6位）</label><input id="rPw" type="password" placeholder="建议好记的长密码"></div>
       <div class="field"><label>密码提示（备忘，不存明文）</label><input id="rHint" placeholder="如：校名简称+年份"></div>
-      <div class="field"><label>注册口令（防滥用，向站长索取）</label><input id="rCode" placeholder="凭口令开通"></div>
       <button class="p gold" id="btnReg" type="button">🚀 立即开通</button>
       <div class="msg" id="msgR"></div>
     </div>
@@ -332,11 +331,10 @@ var name=document.getElementById("rName").value.trim();
 var slug=document.getElementById("rSlug").value.trim().toLowerCase();
 var pw=document.getElementById("rPw").value;
 var hint=document.getElementById("rHint").value.trim();
-var code=document.getElementById("rCode").value.trim();
 var m=document.getElementById("msgR");
-if(!name||!slug||!pw||!code){m.className="msg err";m.textContent="请把学校名称、拼音后缀、密码、注册口令都填上";return}
+if(!name||!slug||!pw){m.className="msg err";m.textContent="请把学校名称、拼音后缀、密码都填上";return}
 m.className="msg";m.textContent="开通中，约需十几秒…";
-fetch("/sports/api/reg",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,slug:slug,pwd:pw,hint:hint,code:code})})
+fetch("/sports/api/reg",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,slug:slug,pwd:pw,hint:hint})})
 .then(function(r){return r.json()}).then(function(d){
 if(d.ok){m.className="msg ok";m.textContent="✅ 已开通！地址 /sports/"+esc(slug)+"，正在带您前往…";setTimeout(function(){location.href="/sports/"+slug},1700)}
 else{m.className="msg err";m.textContent=d.msg||"开通失败"}
@@ -370,8 +368,6 @@ var worker_default = {
       }
       if (ep === "reg" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        const want = await env.GW_KV.get("reg_code");
-        if (!want || !body.code || body.code !== want) return j({ ok: false, msg: "注册口令不对（开通请向站长索取口令）" }, 403);
         return doCreate(env, body);
       }
       if (!await isAuthed(request, env)) return j({ ok: false, msg: "未登录" }, 401);
