@@ -149,8 +149,13 @@ el("btnPw").addEventListener("click",function(){
   fetch("/soft/api/my-pass",{method:"POST",body:fd})
     .then(function(r){return r.json()})
     .then(function(d){
-      if(d.ok){m.style.color="#2E7D4F";m.textContent="✅ "+d.msg+"，正在跳登录页…";
-        setTimeout(function(){location.replace("/soft/sports/index.html")},1800);}
+      if(d.ok){m.style.color="#2E7D4F";m.textContent="✅ "+d.msg+"，正在退出登录并跳转到登录页…";
+        /* 【v4.82】先作废当前会话（logout），再跳真登录页 /soft/__auth —— 保证必须用新密码重新登录 */
+        setTimeout(function(){
+          fetch("/soft/__auth/logout",{method:"POST"}).catch(function(){}).finally(function(){
+            location.replace("/soft/__auth");
+          });
+        },1800);}
       else{m.style.color="#B03A2E";m.textContent=d.msg||"修改失败";}
     })
     .catch(function(){m.style.color="#B03A2E";m.textContent="网络异常，稍后再试";});
