@@ -104,7 +104,7 @@ table.rec-tbl th{background:#EFEBE0;}
     <div class="empty">加载中…</div>
   </div>
 
-  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.77】｜ 各级部金标准宽表（单位+项目得分+总分+名次）<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
+  <footer>运动会管理系统 · M9 汇总导出 ｜ 手搓 v2【v4.78】｜ 各级部宽表只列本年级项目 · 列名去年级前缀与预决赛字样<br>规则金标准：站长的老版计分Excel ｜ A4 版式：送主席台宣读 ｜ 手机端横向滑动查看</footer>
 </div>
 
 <script>
@@ -125,6 +125,22 @@ function gradeSortKey(cn){ /* "四年级1班"→级部+班号，保证 1班→2�
   var g=gradeOf(cn)||9;
   var m=String(cn).match(/(\d+)\s*班/);
   return g*100+(m?parseInt(m[1],10):99);
+}
+function evShort(ev){ /* 【v4.78】列名精简：剥"X年级"前缀+去"预/决赛"字样（标题已有年级） */
+  return String(ev).replace(/^[一二三四五六]+年级/,"").replace(/(预决赛|预赛|决赛)/g,"");
+}
+function evGradeOf(ev){ /* 场次归属年级：名字带前缀按前缀；不带→按得分班级年级兜底（接力场跨年级时归众数年级） */
+  var g=gradeOf(ev);
+  if(g)return g;
+  var votes={};
+  (det[ev]||[]).forEach(function(it){
+    if(!it.className)return;
+    var cg=gradeOf(it.className)||0;
+    votes[cg]=(votes[cg]||0)+1;
+  });
+  var best=0,n=0;
+  Object.keys(votes).forEach(function(k){ if(votes[k]>n){n=votes[k];best=Number(k);} });
+  return best;
 }
 function buildPapers(){
   var tot=DATA.classTotals||{};
@@ -151,9 +167,19 @@ function buildPapers(){
       cell[k]=(cell[k]||0)+(it.pts||0)+(it.recPts||0);
     });
   });
+  /* 【v4.78】场次按年级归属分组（保持 events_json 原顺序） */
+  var evByGrade={};
+  evNames.forEach(function(ev){
+    var g=evGradeOf(ev);
+    if(!evByGrade[g])evByGrade[g]=[];
+    evByGrade[g].push(ev);
+  });
   var html="";
   Object.keys(byGrade).sort(function(a,b){return a-b}).forEach(function(g){
     var arr=byGrade[g].slice().sort(gradeSortKey); /* 行序=班号序（金标准） */
+    var evG=(evByGrade[Number(g)]||[]).slice(); /* 本年级场次=本年级表的列（其他年级场次不进） */
+    /* 行内接力兜底队名（不在班级表的）也按年级归列 */
+    var gN=Number(g);
     var gcls=arr;
     /* 名次：总分降序，同分并列同名次 */
     var ranked=gcls.map(function(c){return {cls:c,pts:tot[c]||0};}).sort(function(a,b){return b.pts-a.pts});
@@ -162,16 +188,16 @@ function buildPapers(){
     html+='<div class="paper"><span class="pv-tag">A4 · '+gName(Number(g)||0)+'</span><div class="doc">';
     html+='<h2>'+(Number(g)?gName(Number(g)):"其他")+'运动会总成绩</h2><div class="sub">（平行班比较 · 男女分开计分 · 破纪录另加 · 名次并列同分）</div>';
     html+='<div class="tbl-wrap"><table class="grid"><tr><th class="c-cls">单位</th>';
-    evNames.forEach(function(ev){ html+='<th>'+esc(ev)+'</th>'; });
+    evG.forEach(function(ev){ html+='<th>'+esc(evShort(ev))+'</th>'; });
     html+='<th class="c-sum">总分</th><th class="c-rank">名次</th></tr>';
     gcls.forEach(function(cls){
       var r=rankMap[cls];
       var top=r<=3?(" top"+r):"";
       html+='<tr'+top+'><td class="c-cls">'+esc(cls)+'</td>';
-      evNames.forEach(function(ev){ var v=cell[cls+"\u0001"+ev]||0; html+='<td>'+(v||"")+'</td>'; });
+      evG.forEach(function(ev){ var v=cell[cls+"\u0001"+ev]||0; html+='<td>'+(v||"")+'</td>'; });
       html+='<td class="c-sum"><b>'+(tot[cls]||0)+'</b></td><td class="c-rank"><span class="r1">'+(r||"")+'</span></td></tr>';
     });
-    if(!gcls.length)html+='<tr><td colspan="'+(evNames.length+3)+'">本级部暂无班级数据</td></tr>';
+    if(!gcls.length)html+='<tr><td colspan="'+(evG.length+3)+'">本级部暂无班级数据</td></tr>';
     html+='</table></div>';
     /* 本年级破纪录（沿用原有块，样式收窄） */
     var recs=recLog.filter(function(r){
