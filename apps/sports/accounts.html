@@ -145,14 +145,14 @@
   <footer>运动会管理系统 ｜ 账号管理<br>方法论：删除重做法（手搓版完成使命，积木重生版接班）</footer>
 </div>
 
-<script>
+<script>var __schRoot=(function(){var m=location.pathname.match(/^(.+?)\/(?:apps|soft)\//);return m?m[1]+"/":"/soft/sports/home.html";})();
 function el(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 /* —— 退出（先收证再跳，防竞态） —— */
 el("btnOut").addEventListener("click",function(){
-  fetch("/soft/__auth/logout",{method:"POST"}).then(function(){location.replace("/soft/sports/index.html")})
-  .catch(function(){location.replace("/soft/sports/index.html")});
+  fetch("/soft/__auth/logout",{method:"POST"}).then(function(){location.replace(__schRoot)})
+  .catch(function(){location.replace(__schRoot)});
 });
 
 /* —— 账号列表加载 —— */
