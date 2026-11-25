@@ -341,15 +341,11 @@ nav{background:var(--deep);color:#fff}
   <div class="grid">
     <div class="card">
       <h2>🔑 进入本校系统</h2>
-      <p class="sub">选择学校 + 总管理员密码，直达您学校的运动会工作台</p>
-      <form id="fL" method="POST" action="/sports/">
+      <p class="sub">选好学校点"进入"，到学校登录页选身份登录</p>
+      <form id="fL" onsubmit="return navSch(event)">
         <div class="field"><label>选择学校</label><select id="sch"><option value="">加载中…</option></select></div>
-        <div class="field"><label>总管理员密码</label><input type="password" name="password" placeholder="本校总管理员密码" required></div>
-        <input type="hidden" name="rt" value="admin">
-        <input type="hidden" name="next" value="/apps/sports/home.html">
         <button class="p" type="submit" id="go">进 入 →</button>
       </form>
-      <div class="tea">班主任 / 成绩录入员：<a id="tea" href="/sports/">到学校登录页选身份</a></div>
       <div class="msg" id="msgL"></div>
     </div>
     <div class="card">
@@ -357,7 +353,7 @@ nav{background:var(--deep);color:#fff}
       <p class="sub">填好信息即刻生成贵校专属系统（网址：tl.efcc.cc/sports/贵校拼音）</p>
       <div class="field"><label>学校名称</label><input id="rName" placeholder="如：实验小学"></div>
       <div class="field"><label>拼音后缀（小写字母，作网址用）</label><input id="rSlug" placeholder="如 shixiao → /sports/shixiao"></div>
-      <div class="field"><label>本校总管理员密码（至少6位）</label><input id="rPw" type="password" placeholder="建议好记的长密码"></div>
+      <div class="field"><label>本校总管理员密码（至少6位）</label><input id="rPw" type="password" placeholder="建议好记的长密码" autocomplete="new-password" onfocus="this.removeAttribute('readonly')" readonly></div>
       <div class="field"><label>密码提示（备忘，不存明文）</label><input id="rHint" placeholder="如：校名简称+年份"></div>
       <button class="p gold" id="btnReg" type="button">🚀 立即开通</button>
       <div class="msg" id="msgR"></div>
@@ -368,7 +364,8 @@ nav{background:var(--deep);color:#fff}
 <script>
 var schSel=document.getElementById("sch");
 function esc(x){return String(x).replace(/</g,"&lt;")}
-function syncA(){var v=schSel.value;if(v){document.getElementById("fL").action="/sports/"+v+"/soft/__auth";document.getElementById("tea").href="/sports/"+v+"/"}}
+function syncA(){var v=schSel.value;}
+function navSch(e){e.preventDefault();var v=schSel.value;if(!v){var m=document.getElementById("msgL");m.className="msg err";m.textContent="请先选学校（列表加载中或暂无学校）";return false}location.href="/sports/"+v+"/";return false}
 fetch("/sports/api/schools").then(function(r){return r.json()}).then(function(d){
 if(!d.ok||!d.schools.length){schSel.innerHTML='<option value="">暂无学校 · 请先在旁边开通</option>';document.getElementById("go").disabled=true;return}
 schSel.innerHTML=d.schools.map(function(x){return '<option value="'+esc(x.slug)+'">'+esc(x.name)+"</option>"}).join("");
