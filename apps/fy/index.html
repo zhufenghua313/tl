@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>欢乐翻译 · 欢乐工具站</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233b'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='%23E8BC4F' font-family='serif' font-weight='bold'%3E译%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#0e1726;--card:#16233b;--line:rgba(232,188,79,.18);--gold:#E8BC4F;--ink:#eef2f8;--sub:#9fb0c9;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 50% -10%,#1b2a45 0%,var(--bg) 60%);min-height:100vh;color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+.hero{text-align:center;padding:14px 0 22px}
+.hero h1{font-size:26px;letter-spacing:1px}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
+.modes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.modes button{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer}
+.modes button:hover{color:var(--gold);border-color:var(--gold)}
+.modes button.on{background:rgba(232,188,79,.14);color:var(--gold);border-color:var(--gold)}
+.panel{display:grid;grid-template-columns:1fr 44px 1fr;gap:0;align-items:stretch}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.box .cap{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--sub);font-size:12px}
+.box textarea{flex:1;background:transparent;border:none;color:var(--ink);padding:14px;font-size:15.5px;line-height:1.75;min-height:220px;resize:vertical;outline:none;font-family:inherit}
+.box textarea::placeholder{color:#5a6b85}
+.box textarea:focus{background:#0b1422}
+#result{white-space:pre-wrap;padding:14px;font-size:15.5px;line-height:1.75;min-height:220px;overflow:auto}
+#result:empty::before{content:"译文出现在这里";color:#5a6b85}
+#result.busy::after{content:"";display:block;width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;margin-top:10px;animation:r 1s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+.mid{display:flex;align-items:center;justify-content:center}
+.swap{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--gold);font-size:16px;cursor:pointer}
+.swap:hover{border-color:var(--gold)}
+.ops{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.ops button{border:none;border-radius:10px;font-size:15px;padding:12px 30px;cursor:pointer}
+#go{background:linear-gradient(135deg,#E8BC4F,#d99e2b);color:#20283a;font-weight:800}
+#go:active{transform:scale(.97)}
+#go:disabled{opacity:.55;cursor:wait}
+.ops .ghost{background:transparent;border:1px solid var(--line);color:var(--sub);padding:12px 18px;font-size:13.5px}
+.ops .ghost:hover{color:var(--gold);border-color:var(--gold)}
+.tip{text-align:center;color:var(--sub);font-size:12px;margin-top:14px;line-height:1.8}
+.toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(20px);background:rgba(22,35,59,.95);border:1px solid var(--line);color:var(--gold);padding:10px 22px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;color:var(--sub);font-size:12px;padding:26px 0 0}
+footer a{color:var(--gold);text-decoration:none}
+@media(max-width:640px){.panel{grid-template-columns:1fr}.mid{padding:10px 0;transform:rotate(90deg)}.box textarea,#result{min-height:140px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>欢乐<em>翻译</em></h1>
+    <p>中文 ⇄ 英文 · 自动识别方向 · 输入即点即译</p>
+  </div>
+  <div class="modes">
+    <button data-m="auto" class="on">✨ 自动识别</button>
+    <button data-m="zh">中 → 英</button>
+    <button data-m="en">英 → 中</button>
+  </div>
+  <div class="panel">
+    <div class="box">
+      <div class="cap"><span id="srcCap">原文</span><span id="cnt">0 / 2000</span></div>
+      <textarea id="src" placeholder="请输入要翻译的内容，Ctrl+Enter 快捷翻译" maxlength="2000"></textarea>
+    </div>
+    <div class="mid"><button class="swap" id="swap" title="左右互换">⇄</button></div>
+    <div class="box">
+      <div class="cap"><span>译文</span><button id="copy" class="ghost" style="border:none;padding:2px 10px;font-size:12px">复制</button></div>
+      <div id="result"></div>
+    </div>
+  </div>
+  <div class="ops">
+    <button id="go">翻 译</button>
+    <button id="clear" class="ghost">清空</button>
+  </div>
+  <div class="tip">AI 自动判断输入语言：中文译英文，英文译中文 · 遇到生词长句都可以试试</div>
+  <footer><a href="/">← 返回欢乐工具站</a></footer>
+</div>
+<div class="toast" id="toast">已复制到剪贴板</div>
+<script>
+const src=document.getElementById('src'),result=document.getElementById('result'),go=document.getElementById('go'),
+      cnt=document.getElementById('cnt'),srcCap=document.getElementById('srcCap'),toast=document.getElementById('toast');
+let mode='auto',busy=false;
+const isZh=t=>/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(t);
+src.addEventListener('input',()=>{cnt.textContent=src.value.length+' / 2000'});
+src.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();doTrans()}});
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.modes button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');mode=b.dataset.m;updateCap();
+});
+function updateCap(){srcCap.textContent=mode==='auto'?'原文（自动识别）':mode==='zh'?'中文原文':'英文原文'}
+document.getElementById('swap').onclick=()=>{
+  const t=result.textContent.trim();
+  if(!t){show('右边还没有译文');return}
+  src.value=t.slice(0,2000);cnt.textContent=src.value.length+' / 2000';
+  result.textContent='';src.focus();
+};
+document.getElementById('clear').onclick=()=>{src.value='';result.textContent='';cnt.textContent='0 / 2000';src.focus()};
+document.getElementById('copy').onclick=async()=>{
+  const t=result.textContent.trim();
+  if(!t){show('还没有译文可复制');return}
+  try{await navigator.clipboard.writeText(t)}catch(e){
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+  }
+  show('已复制到剪贴板');
+};
+let tt;function show(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),1600)}
+async function doTrans(){
+  const text=src.value.trim();
+  if(!text){show('请先输入要翻译的内容');src.focus();return}
+  if(busy)return;
+  const target=mode==='auto'?(isZh(text)?'english':'chinese'):mode==='zh'?'english':'chinese';
+  busy=true;go.disabled=true;go.textContent='翻译中…';
+  result.textContent='';result.classList.add('busy');
+  try{
+    const r=await fetch('/fy/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,target})});
+    const d=await r.json();
+    if(!d.ok){result.textContent='⚠️ '+(d.msg||'翻译失败，请稍后再试')}
+    else{result.textContent=d.translated||'（没翻译出来，换个说法试试）'}
+  }catch(e){result.textContent='⚠️ 网络异常，请稍后再试'}
+  result.classList.remove('busy');
+  busy=false;go.disabled=false;go.textContent='翻 译';
+}
+go.onclick=doTrans;
+updateCap();
+</script>
+</body>
+</html>
