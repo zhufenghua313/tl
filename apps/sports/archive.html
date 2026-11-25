@@ -85,11 +85,11 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
   本系统免费提供使用。使用即视为同意：开发者不对数据出错、丢失、服务中断承担赔偿责任——重要数据请使用本页"下载"功能自行备份留底。
 </footer>
 
-<script>
+<script>var __schRoot=(function(){var m=location.pathname.match(/^(.+?)\/(?:apps|soft)\//);return m?m[1]+"/":"/soft/sports/home.html";})();
 function el(id){return document.getElementById(id)}
 el("btnOut").addEventListener("click",function(){
-  fetch("/soft/__auth/logout",{method:"POST"}).then(function(){location.replace("/soft/sports/home.html")})
-  .catch(function(){location.replace("/soft/sports/home.html")});
+  fetch("/soft/__auth/logout",{method:"POST"}).then(function(){location.replace(__schRoot)})
+  .catch(function(){location.replace(__schRoot)});
 });
 var PENDING=null;
 el("btnNew").addEventListener("click",function(){
