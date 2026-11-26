@@ -28,6 +28,8 @@ a{color:var(--blue);text-decoration:none}
 .drop h3{font-size:18px;margin:10px 0 6px;color:var(--navy)}
 .drop p{font-size:13px;color:var(--sub)}
 .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.logbox{display:none;margin:10px auto 0;padding:10px 14px;background:#f6f8fb;border:1px dashed #b6c4d6;border-radius:10px;font:11px/1.8 ui-monospace,Consolas,monospace;color:#42526e;text-align:left;word-break:break-all}
+.logbox .lt{color:#8896ab}
 /* 设置条 */
 .settings{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:16px 18px;margin-top:16px}
 .set{display:flex;align-items:center;gap:8px;font-size:14px}
@@ -106,6 +108,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <p>支持 PNG / JPG / JPEG / GIF / BMP / WebP，可多选批量 · Ctrl+V 可直接粘贴截图</p>
   </label>
   <input type="file" id="fileInput" accept="image/*" multiple class="vh">
+  <div class="logbox" id="logbox"></div>
 
   <div class="card settings" id="settings" style="display:none">
     <div class="set"><label>质量</label><input type="range" id="quality" min="10" max="100" value="82"><span class="qval" id="qval">82</span></div>
@@ -138,7 +141,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
   <div class="foot">
     <span class="priv">🔒 图片全程在本机浏览器里转换，不会上传到任何服务器</span><br>
-    欢乐工具站 · 自用工具箱 · 工具页 v7
+    欢乐工具站 · 自用工具箱 · 工具页 v8
   </div>
 </div>
 
@@ -153,7 +156,20 @@ var drop=document.getElementById('drop'),fileInput=document.getElementById('file
     toastEl=document.getElementById('toast');
 var files=[],converting=false;
 /* 行车记录仪：任何JS报错都显示出来，不再无声死掉 */
-window.onerror=function(msg){try{toast('脚本错误：'+msg)}catch(e){}return true};
+window.onerror=function(msg){try{toast('脚本错误：'+msg);__log('❌脚本错误：'+msg)}catch(e){}return true};
+/* ===== 工单记录（行车记录仪）：页面+APP双端事件都写进来，一张截图看全程 ===== */
+window.__log=function(m){
+  var el=document.getElementById('logbox');
+  if(!el)return;
+  el.style.display='block';
+  var t=new Date(),line=document.createElement('div'),
+      ts=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+':'+('0'+t.getSeconds()).slice(-2);
+  var sp=document.createElement('span');sp.className='lt';sp.textContent=ts+' ';
+  line.appendChild(sp);line.appendChild(document.createTextNode(String(m)));
+  el.insertBefore(line,el.firstChild);
+  while(el.childNodes.length>12)el.removeChild(el.lastChild);
+};
+__log('页面已就绪，等待选图');
 
 /* ===== APP壳检测：Android WebView（含网页转APP的空壳、微信内置）识别并亮牌 ===== */
 (function(){
@@ -232,9 +248,10 @@ fileInput.addEventListener('change',function(){
   try{
     window.__selEcho=Date.now();
     var fl=this.files;
+    __log('页面change事件：'+fl.length+' 个');
     toast(fl.length?('收到 '+fl.length+' 个文件：'+(fl[0].name||'无名字')+' / '+(fl[0].type||'无类型')):'选择器返回了空结果');
     addFiles(fl);
-  }catch(err){toast('处理出错：'+err.message)}
+  }catch(err){__log('❌change处理出错：'+err.message);toast('处理出错：'+err.message)}
   this.value='';
 });
 /* ===== APP直投通道：APP端读图后分块喂进来（绕过WebView选图缺陷的保底路线） ===== */
@@ -244,14 +261,15 @@ window.__hjPush=function(s){window.__hjBuf+=s};
 window.__hjFinish=function(name,type){
   try{
     var b64=window.__hjBuf;window.__hjBuf='';
-    if(!b64){toast('直投数据是空的');return}
+    if(!b64){__log('❌直投数据是空的');toast('直投数据是空的');return}
     var b=atob(b64),u=new Uint8Array(b.length);
     for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
     var f=new File([u],name||('直投_'+Date.now()+'.jpg'),{type:type||'image/jpeg'});
     window.__selEcho=Date.now();
+    __log('页面收到直投：'+f.name+' '+fmt(f.size)+'B');
     addFiles([f]);
     toast('APP直投收到：'+f.name+'（'+fmt(f.size)+'）');
-  }catch(e){toast('直投解析失败：'+e.message)}
+  }catch(e){__log('❌直投解析失败：'+e.message);toast('直投解析失败：'+e.message)}
 };
 fileInput.addEventListener('input',function(){
   if(this.files&&this.files.length&&!files.length)toast('input事件触发（备用通道）');
@@ -273,6 +291,7 @@ function addFiles(fl){
     if(f.type==='image/gif'||/\.gif$/i.test(f.name)){toast('GIF 转出来会丢失动画（只保留第一帧）')}
     files.push({f:f,status:'wait'});n++;
   }
+  __log('addFiles：收到'+fl.length+'个，收下'+n+'个'+(rej.length?('，跳过'+rej[0]):''));
   if(rej.length)toast('跳过不支持的文件：'+rej[0]);
   if(n){settings.style.display='flex';render()}
   else if(fl.length&&!rej.length)toast('没有可处理的图片');
