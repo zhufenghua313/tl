@@ -40,6 +40,8 @@ body{background:var(--page);min-height:100vh;color:var(--ink);font-family:system
 #out.empty::before{content:'翻译';color:var(--ph);font-weight:800}
 #out.busy{color:var(--ph)}
 #out.busy::before{content:'翻译中…'}
+#out.rough{color:var(--ink);opacity:.72}
+#out.rough::after{content:' （初译，AI 精译中…）';color:var(--ph);font-size:14px;font-weight:400;font-style:italic}
 .outrow{display:flex;align-items:center;gap:8px;padding:8px 2px 2px;min-height:36px}
 .pillbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 15px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
 .pillbtn:hover{background:var(--soft)}
@@ -141,7 +143,7 @@ const src=$('src'),out=$('out'),go=$('go'),clr=$('clr'),mic=$('mic'),paste=$('pa
       lsrc=$('lsrc'),ltgt=$('ltgt'),lsrcn=$('lsrcn'),ltgtn=$('ltgtn'),swap=$('swap'),redo=$('redo'),tts=$('tts'),cp=$('cp'),
       count=$('count'),eng=$('eng'),toast=$('toast'),cats=$('cats'),phlist=$('phlist'),
       mask=$('mask'),sheet=$('sheet'),shbody=$('shbody'),shtitle=$('shtitle'),shclose=$('shclose');
-let busy=false,lastText='',lastOut='',lastTgt='';
+let busy=false,lastText='',lastOut='',lastTgt='',seqNo=0;
 let tt;function show(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),1800)}
 
 /* 语言表：n=名称 t=朗读语音代码 */
@@ -242,17 +244,41 @@ async function doTrans(auto){
   if(text===lastText&&tgtLang===lastTgt&&!auto){show('内容没变，译文还在下面');return}
   busy=true;go.disabled=true;go.textContent='…';
   out.className='busy';out.textContent='';cp.disabled=true;eng.textContent='';
+  const seq=++seqNo;
+  let fastDone=false;
+  /* 第一路：快译（秒级），先垫底 */
+  (async()=>{
+    try{
+      const rf=await fetch('/fy/fast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,target:tgtLang})});
+      const df=await rf.json();
+      if(seq!==seqNo||fastDone)return;
+      if(df.ok&&df.translated){
+        fastDone=true;
+        lastText=text;lastTgt=tgtLang;lastOut=df.translated;
+        out.className='rough';out.textContent=df.translated;
+        cp.disabled=false;
+        eng.textContent='初译完成，AI 精译中…';
+      }
+    }catch(e){}
+  })();
+  /* 第二路：GLM 精译，到了就替换 */
   try{
     const r=await fetch('/fy/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,target:tgtLang})});
     const d=await r.json();
-    if(!d.ok){out.className='empty';out.textContent='';show(d.msg||'翻译失败，请稍后再试')}
-    else{
+    if(seq!==seqNo)return;
+    if(!d.ok){
+      if(!fastDone){out.className='empty';out.textContent='';show(d.msg||'翻译失败，请稍后再试')}
+      else eng.textContent='（AI 精译没赶上，已用初译）';
+    }else{
       lastText=text;lastTgt=tgtLang;lastOut=d.translated||'';
       out.className='';out.textContent=lastOut||'（没翻译出来，换个说法试试）';
       cp.disabled=!lastOut;
-      eng.textContent=d.src==='mymemory'?'MyMemory 提供':'Cloudflare AI 提供';
+      eng.textContent='AI 精译 ✓';
     }
-  }catch(e){out.className='empty';out.textContent='';show('网络异常，请稍后再试')}
+  }catch(e){
+    if(seq===seqNo&&!fastDone){out.className='empty';out.textContent='';show('网络异常，请稍后再试')}
+    else if(seq===seqNo)eng.textContent='（AI 精译没赶上，已用初译）';
+  }
   busy=false;go.disabled=false;go.textContent='译';
 }
 go.onclick=()=>doTrans();
