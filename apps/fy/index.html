@@ -285,17 +285,27 @@ go.onclick=()=>doTrans();
 redo.onclick=()=>{lastText='';doTrans(true)};
 
 /* 朗读 */
+let _u=null;
 function speak(text,code){
   if(!text.trim()){show('还没有可朗读的内容');return}
   try{
+    if(!window.speechSynthesis){show('当前浏览器不支持朗读');return}
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text.slice(0,500));
     u.lang=LANGS[code]?LANGS[code].t:'en-US';
     u.rate=0.92;
-    const vs=speechSynthesis.getVoices();
-    const v=vs.find(x=>x.lang.replace('_','-').toLowerCase().startsWith(u.lang.slice(0,2).toLowerCase()));
+    const vs=speechSynthesis.getVoices()||[];
+    const v=vs.find(x=>(x.lang||'').replace('_','-').toLowerCase().startsWith(u.lang.slice(0,2).toLowerCase()));
     if(v)u.voice=v;
+    let started=false;
+    u.onstart=()=>{started=true};
+    u.onerror=()=>{show('朗读被浏览器拦下，请再点一次试试')};
+    _u=u; /* 全局引用：安卓浏览器会回收无引用的朗读对象导致无声 */
     speechSynthesis.speak(u);
+    setTimeout(()=>{
+      if(!started&&speechSynthesis.getVoices().length===0)
+        show('此手机没有朗读引擎（系统缺语音组件），电脑 Edge 上可正常朗读');
+    },2500);
   }catch(e){show('当前浏览器不支持朗读')}
 }
 tts.onclick=()=>speak(lastOut,tgtLang);
