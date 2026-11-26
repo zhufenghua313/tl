@@ -22,11 +22,12 @@ a{color:var(--blue);text-decoration:none}
 .hero p{font-size:13px;color:var(--sub);margin-top:6px}
 .card{background:var(--card);border-radius:18px;box-shadow:0 2px 14px rgba(27,74,122,.08)}
 /* 投放区 */
-.drop{border:2.5px dashed var(--line);border-radius:18px;padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.drop{display:block;border:2.5px dashed var(--line);border-radius:18px;padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
 .drop:hover,.drop.on{border-color:var(--navy);background:#fff}
 .drop .icon{font-size:42px}
 .drop h3{font-size:18px;margin:10px 0 6px;color:var(--navy)}
 .drop p{font-size:13px;color:var(--sub)}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
 /* 设置条 */
 .settings{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:16px 18px;margin-top:16px}
 .set{display:flex;align-items:center;gap:8px;font-size:14px}
@@ -84,12 +85,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <p>PNG / JPG / GIF / BMP → WebP 一步到位 · 全程本机处理，图片不上传服务器</p>
   </div>
 
-  <div class="drop" id="drop">
+  <label class="drop" id="drop" for="fileInput">
     <div class="icon">🖼️</div>
     <h3>把图片拖到这里，或点击选择</h3>
     <p>支持 PNG / JPG / JPEG / GIF / BMP / WebP，可多选批量 · Ctrl+V 可直接粘贴截图</p>
-    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" multiple hidden>
-  </div>
+  </label>
+  <input type="file" id="fileInput" accept="image/*" multiple class="vh">
 
   <div class="card settings" id="settings" style="display:none">
     <div class="set"><label>质量</label><input type="range" id="quality" min="10" max="100" value="82"><span class="qval" id="qval">82</span></div>
@@ -142,7 +143,6 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp
 
 quality.addEventListener('input',function(){qval.textContent=quality.value});
 
-drop.addEventListener('click',function(){fileInput.click()});
 drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('on')});
 drop.addEventListener('dragleave',function(){drop.classList.remove('on')});
 drop.addEventListener('drop',function(e){
@@ -161,7 +161,7 @@ function addFiles(fl){
   var n=0;
   for(var i=0;i<fl.length;i++){
     var f=fl[i];
-    if(!/^image\/(png|jpe?g|gif|bmp|webp)$/i.test(f.type)){toast('跳过不支持的文件：'+f.name);continue}
+    if(!/^image\//i.test(f.type)){toast('跳过不支持的文件：'+f.name);continue}
     if(f.type==='image/gif'){toast('GIF 转出来会丢失动画（只保留第一帧）')}
     files.push({f:f,status:'wait'});n++;
   }
@@ -214,6 +214,7 @@ function convertOne(it,cb){
   img.onload=function(){
     var c=document.createElement('canvas');
     var dims=targetDims(img.naturalWidth||img.width,img.naturalHeight||img.height);
+    if(!dims[0]||!dims[1]){URL.revokeObjectURL(url);cb(new Error('这张图读不出尺寸，跳过了'));return}
     c.width=dims[0];c.height=dims[1];
     var ctx=c.getContext('2d');
     ctx.imageSmoothingQuality='high';
