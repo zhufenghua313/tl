@@ -235,15 +235,18 @@ document.addEventListener('paste',function(e){
 });
 
 function addFiles(fl){
-  var n=0;
+  var n=0,rej=[];
   for(var i=0;i<fl.length;i++){
     var f=fl[i];
-    if(!/^image\//i.test(f.type)){toast('跳过不支持的文件：'+f.name);continue}
-    if(f.type==='image/gif'){toast('GIF 转出来会丢失动画（只保留第一帧）')}
+    var okType=/^image\//i.test(f.type);
+    var okExt=/\.(png|jpe?g|gif|bmp|webp|avif|heic|heif|jfif|ico|tiff?)$/i.test(f.name);
+    if(!okType&&!okExt){rej.push(f.name);continue}
+    if(f.type==='image/gif'||/\.gif$/i.test(f.name)){toast('GIF 转出来会丢失动画（只保留第一帧）')}
     files.push({f:f,status:'wait'});n++;
   }
+  if(rej.length)toast('跳过不支持的文件：'+rej[0]);
   if(n){settings.style.display='flex';render()}
-  else toast('没有可处理的图片');
+  else if(fl.length&&!rej.length)toast('没有可处理的图片');
 }
 
 function render(){
@@ -415,9 +418,16 @@ clearBtn.addEventListener('click',function(){
   files=[];render();summary.style.display='none';
 });
 
-/* 双通道下载：jsDelivr 挂了自动切 GitHub raw */
+/* 双通道下载：APP里走原生下载桥；浏览器里 jsDelivr 挂了自动切 GitHub raw */
 var softDl=document.getElementById('softDl');
 softDl.addEventListener('click',function(e){
+  var B=window.HuanleTL;
+  if(B&&B.downloadUrl){
+    e.preventDefault();
+    try{B.downloadUrl(this.href);toast('已交给系统下载器，看通知栏进度')}
+    catch(err){toast('下载器没响应，请截图告诉我')}
+    return;
+  }
   if(softDl.dataset.swap)return;
   e.preventDefault();
   var probe=new XMLHttpRequest();
@@ -428,6 +438,7 @@ softDl.addEventListener('click',function(e){
     else{fallback()}
   };
   probe.onerror=fallback;
+  probe.ontimeout=fallback;
   function fallback(){
     softDl.href='https://raw.githubusercontent.com/zhufenghua313/zh/main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar';
     softDl.dataset.swap='1';softDl.click();setTimeout(function(){delete softDl.dataset.swap},1000);
