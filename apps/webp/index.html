@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>图片转 WebP · 欢乐工具站</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231B4A7A'/%3E%3Ctext x='32' y='44' font-size='30' text-anchor='middle' fill='%23fff' font-family='serif' font-weight='bold'%3E图%3C/text%3E%3C/svg%3E">
+<style>
+:root{--page:#E9EFF7;--card:#fff;--soft:#EEF3F8;--line:#D0D8E4;--navy:#1B4A7A;--blue:#0F6CBD;--ink:#111418;--sub:#6B7280;--ph:#A8B3C4;--ok:#2E7D32;--bad:#C0392B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--page);min-height:100vh;color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--blue);text-decoration:none}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+.topbar{position:sticky;top:0;z-index:9;background:rgba(233,239,247,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:52px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;color:var(--navy)}
+.brand .logo{width:28px;height:28px;border-radius:8px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+.topbar nav a{color:var(--sub);font-size:14px;font-weight:600;margin-left:16px}
+.topbar nav a:hover{color:var(--navy)}
+.hero{padding:30px 0 20px;text-align:center}
+.hero h1{font-size:24px;color:var(--navy);letter-spacing:1px}
+.hero p{font-size:13px;color:var(--sub);margin-top:6px}
+.card{background:var(--card);border-radius:18px;box-shadow:0 2px 14px rgba(27,74,122,.08)}
+/* 投放区 */
+.drop{border:2.5px dashed var(--line);border-radius:18px;padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.drop:hover,.drop.on{border-color:var(--navy);background:#fff}
+.drop .icon{font-size:42px}
+.drop h3{font-size:18px;margin:10px 0 6px;color:var(--navy)}
+.drop p{font-size:13px;color:var(--sub)}
+/* 设置条 */
+.settings{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:16px 18px;margin-top:16px}
+.set{display:flex;align-items:center;gap:8px;font-size:14px}
+.set label{color:var(--sub);font-size:13px}
+.set select,.set input[type=number]{font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--ink);outline:none}
+.set select:focus,.set input:focus{border-color:var(--navy)}
+input[type=range]{-webkit-appearance:none;width:150px;height:6px;border-radius:3px;background:var(--line);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--navy);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.qval{font-weight:800;color:var(--navy);min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.btn{border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;padding:11px 22px;font-family:inherit;transition:all .15s}
+.btn-main{background:var(--navy);color:#fff}
+.btn-main:hover{background:#15406A}
+.btn-main:disabled{opacity:.45;cursor:wait}
+.btn-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--navy)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:10px}
+/* 文件列表 */
+.list{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.item{display:flex;align-items:center;gap:14px;padding:12px 16px}
+.thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--soft);flex:none;border:1px solid var(--line)}
+.finfo{flex:1;min-width:0}
+.fname{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta{font-size:12px;color:var(--sub);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.fmeta .ratio{color:var(--ok);font-weight:800}
+.fmeta .grow{color:var(--bad);font-weight:800}
+.pbar{width:110px;height:7px;border-radius:4px;background:var(--soft);overflow:hidden;flex:none}
+.pbar i{display:block;height:100%;width:0;background:var(--navy);border-radius:4px;transition:width .25s}
+.dl{flex:none}
+/* 汇总 */
+.summary{display:none;margin-top:16px;padding:16px 20px;font-size:14px;line-height:1.9}
+.summary b{color:var(--navy)}
+/* 软件下载卡 */
+.softcard{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-top:22px;flex-wrap:wrap}
+.softicon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#F5B041,#E67E22);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
+.softinfo{flex:1;min-width:220px}
+.softinfo h4{font-size:16px;color:var(--navy)}
+.softinfo p{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.7}
+/* 页脚 */
+.foot{margin:26px 0 40px;text-align:center;font-size:12px;color:var(--sub);line-height:2}
+.foot .priv{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:14px;padding:5px 14px;color:var(--ok);font-weight:700}
+@media(max-width:640px){.hero h1{font-size:20px}.drop{padding:30px 14px}.item{flex-wrap:wrap}.pbar{width:100%}.settings{padding:12px}}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 22px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+#toast.show{opacity:.95}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">
+  <div class="brand"><span class="logo">图</span>图片转 WebP</div>
+  <nav><a href="/">← 返回工具站</a><a href="/fy">翻译</a></nav>
+</div></div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>图片批量转 WebP，又小又清晰</h1>
+    <p>PNG / JPG / GIF / BMP → WebP 一步到位 · 全程本机处理，图片不上传服务器</p>
+  </div>
+
+  <div class="drop" id="drop">
+    <div class="icon">🖼️</div>
+    <h3>把图片拖到这里，或点击选择</h3>
+    <p>支持 PNG / JPG / JPEG / GIF / BMP / WebP，可多选批量 · Ctrl+V 可直接粘贴截图</p>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" multiple hidden>
+  </div>
+
+  <div class="card settings" id="settings" style="display:none">
+    <div class="set"><label>质量</label><input type="range" id="quality" min="10" max="100" value="82"><span class="qval" id="qval">82</span></div>
+    <div class="set"><label>缩放</label>
+      <select id="resize">
+        <option value="0">保持原尺寸</option>
+        <option value="50">缩小到 50%</option>
+        <option value="75">缩小到 75%</option>
+        <option value="1920">宽 ≤ 1920px</option>
+        <option value="1280">宽 ≤ 1280px</option>
+        <option value="800">宽 ≤ 800px</option>
+      </select>
+    </div>
+    <button class="btn btn-main" id="go">开始转换</button>
+    <button class="btn btn-ghost" id="clear">清空</button>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="card summary" id="summary"></div>
+
+  <div class="card softcard">
+    <div class="softicon">🍯</div>
+    <div class="softinfo">
+      <h4>Windows 看图软件：Honeyview 蜂蜜看图</h4>
+      <p>老电脑也能流畅打开 WebP / JPG / PNG 等 30+ 种格式，免费无广告。软件包 8MB，从咱自己仓库下载。</p>
+    </div>
+    <a class="btn btn-main" id="softDl" href="https://cdn.jsdelivr.net/gh/zhufenghua313/zh@main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar" download="Honeyview.rar">下载安装包（8MB）</a>
+  </div>
+
+  <div class="foot">
+    <span class="priv">🔒 图片全程在本机浏览器里转换，不会上传到任何服务器</span><br>
+    欢乐工具站 · 自用工具箱
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var drop=document.getElementById('drop'),fileInput=document.getElementById('fileInput'),
+    listEl=document.getElementById('list'),settings=document.getElementById('settings'),
+    quality=document.getElementById('quality'),qval=document.getElementById('qval'),
+    resize=document.getElementById('resize'),goBtn=document.getElementById('go'),
+    clearBtn=document.getElementById('clear'),summary=document.getElementById('summary'),
+    toastEl=document.getElementById('toast');
+var files=[],converting=false;
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},1900)}
+function fmt(b){return b>1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB'}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+quality.addEventListener('input',function(){qval.textContent=quality.value});
+
+drop.addEventListener('click',function(){fileInput.click()});
+drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('on')});
+drop.addEventListener('dragleave',function(){drop.classList.remove('on')});
+drop.addEventListener('drop',function(e){
+  e.preventDefault();drop.classList.remove('on');
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change',function(){addFiles(this.files);this.value=''});
+document.addEventListener('paste',function(e){
+  var items=(e.clipboardData||{}).items||[];
+  var imgs=[];
+  for(var i=0;i<items.length;i++){if(items[i].type.indexOf('image')===0){imgs.push(items[i].getAsFile())}}
+  if(imgs.length){addFiles(imgs);toast('已从剪贴板加入 '+imgs.length+' 张图')}
+});
+
+function addFiles(fl){
+  var n=0;
+  for(var i=0;i<fl.length;i++){
+    var f=fl[i];
+    if(!/^image\/(png|jpe?g|gif|bmp|webp)$/i.test(f.type)){toast('跳过不支持的文件：'+f.name);continue}
+    if(f.type==='image/gif'){toast('GIF 转出来会丢失动画（只保留第一帧）')}
+    files.push({f:f,status:'wait'});n++;
+  }
+  if(n){settings.style.display='flex';render()}
+  else toast('没有可处理的图片');
+}
+
+function render(){
+  if(!files.length){settings.style.display='none';summary.style.display='none'}
+  var html='';
+  for(var i=0;i<files.length;i++){
+    var it=files[i];
+    var meta='';
+    if(it.status==='wait')meta='排队中';
+    else if(it.status==='work')meta='转换中…';
+    else if(it.status==='done'){
+      var shrink=it.f.size>0&&(it.out.size/it.f.size)<=1;
+      meta='原 '+fmt(it.f.size)+' → 新 <b>'+fmt(it.out.size)+'</b> · <span class="'+(shrink?'ratio':'grow')+'">'+(shrink?('省 '+Math.round((1-it.out.size/it.f.size)*100)+'%'):'变大了（可调低质量再试）')+'</span>';
+    }
+    html+='<div class="card item">'
+      +'<img class="thumb" id="th'+i+'" alt="">'
+      +'<div class="finfo"><div class="fname">'+esc(it.f.name)+'</div><div class="fmeta">'+meta+'</div></div>'
+      +'<div class="pbar"><i id="pb'+i+'"></i></div>'
+      +(it.status==='done'?'<a class="btn btn-sm btn-main dl" download="'+esc(it.f.name.replace(/\.[^.]+$/,''))+'.webp" href="'+it.out.url+'">下载</a>':'')
+      +'</div>';
+  }
+  listEl.innerHTML=html;
+  for(var j=0;j<files.length;j++){
+    (function(idx){
+      var img=document.getElementById('th'+idx);
+      if(!img)return;
+      var fr=new FileReader();
+      fr.onload=function(){img.src=fr.result};
+      fr.onerror=function(){};
+      fr.readAsDataURL(files[idx].f);
+    })(j);
+  }
+}
+
+function targetDims(w,h){
+  var v=parseInt(resize.value,10);
+  if(!v)return[w,h];
+  if(v<=100)return[Math.max(1,Math.round(w*v/100)),Math.max(1,Math.round(h*v/100))];
+  return w>v?[v,Math.max(1,Math.round(h*v/w))]:[w,h];
+}
+
+function convertOne(it,cb){
+  var img=new Image();
+  var url=URL.createObjectURL(it.f);
+  img.onload=function(){
+    var c=document.createElement('canvas');
+    var dims=targetDims(img.naturalWidth||img.width,img.naturalHeight||img.height);
+    c.width=dims[0];c.height=dims[1];
+    var ctx=c.getContext('2d');
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(img,0,0,c.width,c.height);
+    c.toBlob(function(blob){
+      URL.revokeObjectURL(url);
+      if(!blob){cb(new Error('浏览器没能生成 WebP'))}
+      else{it.out={blob:blob,size:blob.size,url:URL.createObjectURL(blob)};cb(null)}
+    },'image/webp',parseInt(quality.value,10)/100);
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);cb(new Error('这张图读取失败'))};
+  img.src=url;
+}
+
+goBtn.addEventListener('click',function(){
+  if(converting)return;
+  if(!files.length){toast('先添加图片');return}
+  files.forEach(function(x){if(x.out)URL.revokeObjectURL(x.out.url);x.status='wait'});
+  var pend=files.slice();
+  converting=true;goBtn.disabled=true;goBtn.textContent='转换中…';
+  var idx=0;
+  function next(){
+    if(idx>=pend.length){
+      converting=false;goBtn.disabled=false;goBtn.textContent='重新转换（调整质量再来一次）';
+      showSummary();toast('全部完成 ✓');return;
+    }
+    var it=pend[idx];
+    it.status='work';render();
+    var pb=document.getElementById('pb'+(files.indexOf(it)));
+    if(pb)pb.style.width='50%';
+    convertOne(it,function(err){
+      if(err){it.status='wait';toast(err.message)}
+      else{it.status='done';var pb2=document.getElementById('pb'+(files.indexOf(it)));if(pb2)pb2.style.width='100%'}
+      render();idx++;next();
+    });
+  }
+  next();
+});
+
+function showSummary(){
+  var done=files.filter(function(x){return x.status==='done'});
+  if(!done.length){summary.style.display='none';return}
+  var inB=0,outB=0;
+  done.forEach(function(x){inB+=x.f.size;outB+=x.out.size});
+  var pct=inB?Math.round((1-outB/inB)*100):0;
+  summary.style.display='block';
+  summary.innerHTML='<b>'+done.length+' 张全部转换完成</b>：'+fmt(inB)+' → <b>'+fmt(outB)+'</b>'
+    +(pct>0?('，总体积缩小 <b>'+pct+'%</b>'):('，体积没有变小（GIF/已压过的图常见）'))
+    +'。 <a href="javascript:void(0)" id="zipAll" style="font-weight:800">打包下载全部（ZIP）</a>';
+  document.getElementById('zipAll').onclick=zipAll;
+}
+
+/* 极简 ZIP 打包（STORE 模式——图片本身已压缩，无需再压） */
+function zipAll(){
+  var done=files.filter(function(x){return x.status==='done'});
+  if(!done.length)return;
+  var crcTable=null;
+  function crc32(buf){
+    if(!crcTable){crcTable=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++){c=c&1?3988292384^(c>>>1):c>>>1}crcTable[n]=c>>>0}}
+    var c=4294967295;
+    for(var i=0;i<buf.length;i++){c=crcTable[(c^buf[i])&255]^(c>>>8)}
+    return (c^4294967295)>>>0;
+  }
+  var d=new Date(),dosTime=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()/2))&0xFFFF,dosDate=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  var items=[],i=0;
+  function readNext(){
+    if(i>=done.length){assemble();return}
+    var x=done[i];
+    var fr=new FileReader();
+    fr.onload=function(){
+      var u8=new Uint8Array(fr.result);
+      items.push({name:new TextEncoder().encode(x.f.name.replace(/\.[^.]+$/,'')+'.webp'),data:u8,crc:crc32(u8)});
+      i++;readNext();
+    };
+    fr.readAsArrayBuffer(x.out.blob);
+  }
+  function assemble(){
+    var parts=[],central=[],offset=0;
+    items.forEach(function(it){
+      var name=it.name;
+      var lh=new Uint8Array(30+name.length);
+      var dv=new DataView(lh.buffer);
+      dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0x0800,true);dv.setUint16(8,0,true);
+      dv.setUint16(10,dosTime,true);dv.setUint16(12,dosDate,true);
+      dv.setUint32(14,it.crc,true);dv.setUint32(18,it.data.length,true);dv.setUint32(22,it.data.length,true);
+      dv.setUint16(26,name.length,true);dv.setUint16(28,0,true);
+      lh.set(name,30);
+      parts.push(lh,it.data);
+      var ch=new Uint8Array(46+name.length);
+      var cv=new DataView(ch.buffer);
+      cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x0800,true);cv.setUint16(10,0,true);
+      cv.setUint16(12,dosTime,true);cv.setUint16(14,dosDate,true);
+      cv.setUint32(16,it.crc,true);cv.setUint32(20,it.data.length,true);cv.setUint32(24,it.data.length,true);
+      cv.setUint16(28,name.length,true);
+      cv.setUint32(42,offset,true);
+      ch.set(name,46);
+      central.push(ch);
+      offset+=lh.length+it.data.length;
+    });
+    var centralSize=central.reduce(function(s,c){return s+c.length},0);
+    var eocd=new Uint8Array(22);
+    var ev=new DataView(eocd.buffer);
+    ev.setUint32(0,0x06054b50,true);ev.setUint16(8,items.length,true);ev.setUint16(10,items.length,true);
+    ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);
+    var blob=new Blob(parts.concat(central,[eocd]),{type:'application/zip'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='webp-'+Date.now()+'.zip';
+    a.click();
+    toast('ZIP 已生成，正在下载');
+  }
+  readNext();
+}
+
+clearBtn.addEventListener('click',function(){
+  files.forEach(function(x){if(x.out)URL.revokeObjectURL(x.out.url)});
+  files=[];render();summary.style.display='none';
+});
+
+/* 双通道下载：jsDelivr 挂了自动切 GitHub raw */
+var softDl=document.getElementById('softDl');
+softDl.addEventListener('click',function(e){
+  if(softDl.dataset.swap)return;
+  e.preventDefault();
+  var probe=new XMLHttpRequest();
+  probe.open('HEAD',softDl.href);
+  probe.timeout=6000;
+  probe.onload=function(){
+    if(probe.status>=200&&probe.status<400){softDl.dataset.swap='1';softDl.click();setTimeout(function(){delete softDl.dataset.swap},1000)}
+    else{fallback()}
+  };
+  probe.onerror=fallback;
+  function fallback(){
+    softDl.href='https://raw.githubusercontent.com/zhufenghua313/zh/main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar';
+    softDl.dataset.swap='1';softDl.click();setTimeout(function(){delete softDl.dataset.swap},1000);
+    toast('已切换备用直链下载');
+  }
+});
+})();
+</script>
+</body>
+</html>
