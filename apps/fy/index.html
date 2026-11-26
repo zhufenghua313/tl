@@ -320,17 +320,23 @@ paste.onclick=async()=>{
 
 /* 语音输入 */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec=null,listening=false;
+let rec=null,listening=false,vTimer=null;
+const micOff=()=>{listening=false;mic.classList.remove('listening');if(vTimer){clearTimeout(vTimer);vTimer=null}};
 mic.onclick=()=>{
   if(!SR){show('当前浏览器不支持语音输入（建议用 Edge）');return}
-  if(listening&&rec){rec.stop();return}
+  if(listening&&rec){try{rec.stop()}catch(e){}micOff();show('语音输入已关闭');return}
   rec=new SR();
   rec.lang=LANGS[srcLang].t;
   rec.interimResults=false;
-  rec.onstart=()=>{listening=true;mic.classList.add('listening');show('正在聆听 '+LANGS[srcLang].n+'，请说话…')};
-  rec.onend=()=>{listening=false;mic.classList.remove('listening')};
-  rec.onerror=()=>{listening=false;mic.classList.remove('listening');show('没听清，再试一次')};
-  rec.onresult=e=>{const t=e.results[0][0].transcript;src.value=(src.value?src.value+' ':'')+t;upd();doTrans(true)};
+  rec.onstart=()=>{listening=true;mic.classList.add('listening');show('正在聆听 '+LANGS[srcLang].n+'，请说话…');vTimer=setTimeout(()=>{try{rec.stop()}catch(e){}micOff();show('等太久没听清，已自动关闭')},15000)};
+  rec.onend=()=>{micOff()};
+  rec.onerror=e=>{
+    micOff();
+    if(e&&e.error==='network')show('识别服务连不上，建议用输入法自带的语音键（国内网络更稳）');
+    else if(e&&e.error==='not-allowed')show('麦克风权限被拒绝，请在浏览器设置里允许麦克风');
+    else show('没听清，再试一次');
+  };
+  rec.onresult=e=>{micOff();const t=e.results[0][0].transcript;src.value=(src.value?src.value+' ':'')+t;upd();doTrans(true)};
   rec.start();
 };
 
