@@ -157,8 +157,9 @@ var files=[],converting=false;
 (function(){
   var ua=navigator.userAgent||'';
   var isWv=/android/i.test(ua)&&(/\bwv\b/i.test(ua)||/MicroMessenger/i.test(ua))&&!/MQQBrowser|EdgA|MiuiBrowser|SamsungBrowser|HeyTapBrowser|HuaweiBrowser/i.test(ua);
+  var isApp=!!(window.HuanleTL&&window.HuanleTL.saveBlobStart);
   var banner=document.getElementById('wvBanner');
-  if(isWv&&banner){
+  if(isWv&&!isApp&&banner){
     banner.style.display='block';
     document.getElementById('wvKnow').addEventListener('click',function(){banner.style.display='none'});
     document.getElementById('wvCopy').addEventListener('click',function(){
@@ -181,6 +182,36 @@ function copyText(t,btn){
 var hvCopy=document.getElementById('hvCopy');
 if(hvCopy)hvCopy.addEventListener('click',function(){
   copyText('https://cdn.jsdelivr.net/gh/zhufenghua313/zh@main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar',hvCopy);
+});
+
+/* ===== 欢乐工具站APP 原生保存桥（分块搬运，支持大 ZIP） ===== */
+function appSave(name,blob){
+  var B=window.HuanleTL;
+  var CH=512*1024,off=0;
+  try{B.saveBlobStart(name,blob.type||'application/octet-stream')}
+  catch(e){toast('保存没启动，请截图告诉我');return}
+  (function next(){
+    if(off>=blob.size){B.saveBlobEnd();toast('正在保存到「下载」文件夹…');return}
+    var fr=new FileReader();
+    fr.onload=function(){
+      var s=String(fr.result);
+      try{B.saveBlobChunk(s.slice(s.indexOf(',')+1))}
+      catch(e){toast('传输中断了');return}
+      off+=CH;next();
+    };
+    fr.readAsDataURL(blob.slice(off,off+CH));
+  })();
+}
+/* 单张下载：APP 里走原生桥 */
+listEl.addEventListener('click',function(e){
+  var a=e.target&&e.target.closest?e.target.closest('a.dl'):null;
+  if(!a)return;
+  if(!(window.HuanleTL&&window.HuanleTL.saveBlobStart))return;
+  e.preventDefault();
+  var i=parseInt(a.getAttribute('data-i'),10);
+  if(!isNaN(i)&&files[i]&&files[i].out){
+    appSave(files[i].f.name.replace(/\.[^.]+$/,'')+'.webp',files[i].out.blob);
+  }
 });
 
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},1900)}
@@ -231,7 +262,7 @@ function render(){
       +'<img class="thumb" id="th'+i+'" alt="">'
       +'<div class="finfo"><div class="fname">'+esc(it.f.name)+'</div><div class="fmeta">'+meta+'</div></div>'
       +'<div class="pbar"><i id="pb'+i+'"></i></div>'
-      +(it.status==='done'?'<a class="btn btn-sm btn-main dl" download="'+esc(it.f.name.replace(/\.[^.]+$/,''))+'.webp" href="'+it.out.url+'">下载</a>':'')
+      +(it.status==='done'?'<a class="btn btn-sm btn-main dl" data-i="'+i+'" download="'+esc(it.f.name.replace(/\.[^.]+$/,''))+'.webp" href="'+it.out.url+'">下载</a>':'')
       +'</div>';
   }
   listEl.innerHTML=html;
@@ -366,11 +397,15 @@ function zipAll(){
     ev.setUint32(0,0x06054b50,true);ev.setUint16(8,items.length,true);ev.setUint16(10,items.length,true);
     ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);
     var blob=new Blob(parts.concat(central,[eocd]),{type:'application/zip'});
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='webp-'+Date.now()+'.zip';
-    a.click();
-    toast('ZIP 已生成，正在下载');
+    if(window.HuanleTL&&window.HuanleTL.saveBlobStart){
+      appSave('webp-'+Date.now()+'.zip',blob);
+    }else{
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='webp-'+Date.now()+'.zip';
+      a.click();
+      toast('ZIP 已生成，正在下载');
+    }
   }
   readNext();
 }
