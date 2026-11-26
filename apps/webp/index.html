@@ -59,6 +59,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 /* 汇总 */
 .summary{display:none;margin-top:16px;padding:16px 20px;font-size:14px;line-height:1.9}
 .summary b{color:var(--navy)}
+/* APP壳提醒条 */
+.wvbanner{display:none;background:#FFF7E6;border:1.5px solid #F0D9A8;border-radius:14px;padding:14px 16px;margin-top:14px;font-size:13.5px;color:#7A5B14;line-height:1.8}
+.wvbanner b{color:#B07818}
+.wvlink{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;align-items:center}
+.wvlink input{flex:1;min-width:180px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;color:var(--ink);background:#fff;font-family:inherit}
 /* 软件下载卡 */
 .softcard{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-top:22px;flex-wrap:wrap}
 .softicon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#F5B041,#E67E22);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
@@ -83,6 +88,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <div class="hero">
     <h1>图片批量转 WebP，又小又清晰</h1>
     <p>PNG / JPG / GIF / BMP → WebP 一步到位 · 全程本机处理，图片不上传服务器</p>
+  </div>
+
+  <div class="wvbanner" id="wvBanner">
+    📱 您正在 <b>APP 内置浏览器</b>里打开，这个APP缺"选图"和"下载"功能，点了会没反应——<b>不是工具坏了</b>。<br>
+    请点下面"复制链接"，再到 <b>QQ浏览器 / Edge / 手机自带浏览器</b> 里粘贴打开，选图下载就都正常了：
+    <div class="wvlink">
+      <input id="wvUrl" readonly value="https://tl.efcc.cc/webp">
+      <button class="btn btn-sm btn-main" id="wvCopy">复制链接</button>
+      <button class="btn btn-sm btn-ghost" id="wvKnow">知道了</button>
+    </div>
   </div>
 
   <label class="drop" id="drop" for="fileInput">
@@ -118,6 +133,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <p>老电脑也能流畅打开 WebP / JPG / PNG 等 30+ 种格式，免费无广告。软件包 8MB，从咱自己仓库下载。</p>
     </div>
     <a class="btn btn-main" id="softDl" href="https://cdn.jsdelivr.net/gh/zhufenghua313/zh@main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar" download="Honeyview.rar">下载安装包（8MB）</a>
+    <button class="btn btn-ghost btn-sm" id="hvCopy" title="APP内点下载没反应时，用这个复制链接到浏览器下载">复制下载链接</button>
   </div>
 
   <div class="foot">
@@ -136,6 +152,36 @@ var drop=document.getElementById('drop'),fileInput=document.getElementById('file
     clearBtn=document.getElementById('clear'),summary=document.getElementById('summary'),
     toastEl=document.getElementById('toast');
 var files=[],converting=false;
+
+/* ===== APP壳检测：Android WebView（含网页转APP的空壳、微信内置）识别并亮牌 ===== */
+(function(){
+  var ua=navigator.userAgent||'';
+  var isWv=/android/i.test(ua)&&(/\bwv\b/i.test(ua)||/MicroMessenger/i.test(ua))&&!/MQQBrowser|EdgA|MiuiBrowser|SamsungBrowser|HeyTapBrowser|HuaweiBrowser/i.test(ua);
+  var banner=document.getElementById('wvBanner');
+  if(isWv&&banner){
+    banner.style.display='block';
+    document.getElementById('wvKnow').addEventListener('click',function(){banner.style.display='none'});
+    document.getElementById('wvCopy').addEventListener('click',function(){
+      copyText('https://tl.efcc.cc/webp',this);
+    });
+  }
+})();
+function copyText(t,btn){
+  function ok(){toast('已复制，去浏览器粘贴打开');if(btn){btn.textContent='已复制 ✓';setTimeout(function(){btn.textContent=btn.id==='wvCopy'?'复制链接':'复制下载链接'},1800)}}
+  function fallback(){
+    var inp=document.getElementById('wvUrl');
+    if(inp&&t===inp.value){inp.focus();inp.select();toast('长按链接框也可复制')}
+    else{toast('请长按要复制的文字');}
+    try{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);ok()}catch(e){}
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(ok).catch(fallback);
+  }else fallback();
+}
+var hvCopy=document.getElementById('hvCopy');
+if(hvCopy)hvCopy.addEventListener('click',function(){
+  copyText('https://cdn.jsdelivr.net/gh/zhufenghua313/zh@main/download/zhan/bbs.efcc.cc/soft/Honeyview.rar',hvCopy);
+});
 
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},1900)}
 function fmt(b){return b>1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB'}
