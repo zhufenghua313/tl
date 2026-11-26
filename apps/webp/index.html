@@ -138,7 +138,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
   <div class="foot">
     <span class="priv">🔒 图片全程在本机浏览器里转换，不会上传到任何服务器</span><br>
-    欢乐工具站 · 自用工具箱
+    欢乐工具站 · 自用工具箱 · 工具页 v4
   </div>
 </div>
 
@@ -152,6 +152,8 @@ var drop=document.getElementById('drop'),fileInput=document.getElementById('file
     clearBtn=document.getElementById('clear'),summary=document.getElementById('summary'),
     toastEl=document.getElementById('toast');
 var files=[],converting=false;
+/* 行车记录仪：任何JS报错都显示出来，不再无声死掉 */
+window.onerror=function(msg){try{toast('脚本错误：'+msg)}catch(e){}return true};
 
 /* ===== APP壳检测：Android WebView（含网页转APP的空壳、微信内置）识别并亮牌 ===== */
 (function(){
@@ -226,7 +228,17 @@ drop.addEventListener('drop',function(e){
   e.preventDefault();drop.classList.remove('on');
   addFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change',function(){addFiles(this.files);this.value=''});
+fileInput.addEventListener('change',function(){
+  try{
+    var fl=this.files;
+    toast(fl.length?('收到 '+fl.length+' 个文件：'+(fl[0].name||'无名字')+' / '+(fl[0].type||'无类型')):'选择器返回了空结果');
+    addFiles(fl);
+  }catch(err){toast('处理出错：'+err.message)}
+  this.value='';
+});
+fileInput.addEventListener('input',function(){
+  if(this.files&&this.files.length&&!files.length)toast('input事件触发（备用通道）');
+});
 document.addEventListener('paste',function(e){
   var items=(e.clipboardData||{}).items||[];
   var imgs=[];
