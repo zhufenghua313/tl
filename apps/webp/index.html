@@ -138,7 +138,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
   <div class="foot">
     <span class="priv">🔒 图片全程在本机浏览器里转换，不会上传到任何服务器</span><br>
-    欢乐工具站 · 自用工具箱 · 工具页 v6
+    欢乐工具站 · 自用工具箱 · 工具页 v7
   </div>
 </div>
 
@@ -230,12 +230,29 @@ drop.addEventListener('drop',function(e){
 });
 fileInput.addEventListener('change',function(){
   try{
+    window.__selEcho=Date.now();
     var fl=this.files;
     toast(fl.length?('收到 '+fl.length+' 个文件：'+(fl[0].name||'无名字')+' / '+(fl[0].type||'无类型')):'选择器返回了空结果');
     addFiles(fl);
   }catch(err){toast('处理出错：'+err.message)}
   this.value='';
 });
+/* ===== APP直投通道：APP端读图后分块喂进来（绕过WebView选图缺陷的保底路线） ===== */
+window.__hjBuf='';
+window.__hjReset=function(){window.__hjBuf=''};
+window.__hjPush=function(s){window.__hjBuf+=s};
+window.__hjFinish=function(name,type){
+  try{
+    var b64=window.__hjBuf;window.__hjBuf='';
+    if(!b64){toast('直投数据是空的');return}
+    var b=atob(b64),u=new Uint8Array(b.length);
+    for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+    var f=new File([u],name||('直投_'+Date.now()+'.jpg'),{type:type||'image/jpeg'});
+    window.__selEcho=Date.now();
+    addFiles([f]);
+    toast('APP直投收到：'+f.name+'（'+fmt(f.size)+'）');
+  }catch(e){toast('直投解析失败：'+e.message)}
+};
 fileInput.addEventListener('input',function(){
   if(this.files&&this.files.length&&!files.length)toast('input事件触发（备用通道）');
 });
