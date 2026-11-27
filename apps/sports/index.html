@@ -1,783 +1,98 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>运动会基础配置（M1·手搓v1）</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233b'/%3E%3Ctext x='32' y='42' font-size='32' text-anchor='middle'%3E%F0%9F%8F%83%3C/text%3E%3C/svg%3E"/>
-<style>
-  :root{
-    --deep:#1B2A4A; --deep2:#2A4370; --gold:#D9A521; --goldbg:#FBF6E9;
-    --bg:#F2F4F7; --card:#FFFFFF; --line:#DFE4EC;
-    --ink:#232A3B; --sub:#69738A; --err:#B03A2E; --ok:#2E7D4F;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.65;}
-  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 70px;}
-  header.top{background:linear-gradient(120deg,var(--deep),var(--deep2));color:#fff;border-radius:14px;padding:24px 28px;margin-bottom:16px;position:relative;overflow:hidden;}
-  header.top::after{content:"";position:absolute;right:-50px;top:-50px;width:170px;height:170px;border-radius:50%;background:rgba(217,165,33,.16);}
-  header.top .badge{display:inline-block;background:var(--gold);color:#3D2E00;font-weight:700;font-size:13px;padding:3px 12px;border-radius:20px;margin-bottom:10px;letter-spacing:1px;}
-  header.top h1{font-size:26px;letter-spacing:2px;}
-  header.top p{color:#C9D4E8;font-size:14px;margin-top:6px;}
-  .hintbar{background:#EAF1FB;border:1px solid #C7D8F0;color:#33517E;border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:16px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 4px rgba(27,42,74,.05);}
-  .sec{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-  .sec .num{background:var(--gold);color:#3D2E00;font-weight:800;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
-  .sec h2{font-size:19px;color:var(--deep);}
-  .sec .tail{margin-left:auto;font-size:13px;color:var(--sub);}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 16px;}
-  .fld label{display:block;font-size:14px;color:var(--sub);margin-bottom:4px;}
-  input[type=text],input[type=number],input[type=date],input[type=datetime-local],select{
-    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:#fff;color:var(--ink);
-  }
-  input:focus,select:focus{outline:none;border-color:var(--gold);}
-  .grows{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px;}
-  .grow{display:flex;align-items:center;gap:8px;background:#F8FAFD;border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
-  .grow .gn{font-size:15px;flex:none;}
-  .grow input{width:64px;text-align:center;flex:none;}
-  .grow .gu{font-size:13px;color:var(--sub);flex:none;}
-  .tscroll{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:15px;min-width:640px;}
-  th{background:#EEF2F8;color:var(--deep);font-size:13.5px;padding:8px 8px;text-align:left;white-space:nowrap;}
-  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
-  td input[type=text]{min-width:150px;}
-  td select{min-width:104px;}
-  .del{background:#FBEFED;color:var(--err);border:1px solid #E5C8C3;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;}
-  .del:hover{background:#F5DEDB;}
-  .add{margin-top:10px;background:#EDF2FA;color:var(--deep);border:1px dashed #A9BDDC;border-radius:8px;padding:7px 16px;cursor:pointer;font-size:15px;}
-  .add:hover{background:#E1EAF7;}
-  .ranks{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-  .ranks .rk{display:flex;flex-direction:column;align-items:center;gap:3px;}
-  .ranks .rk span{font-size:13px;color:var(--sub);}
-  .ranks input{width:64px;text-align:center;}
-  .radios{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
-  .radios label{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;}
-  .radios input[type=radio]{width:17px;height:17px;accent-color:var(--deep);}
-  .radios .subinput{display:inline-flex;align-items:center;gap:6px;margin-left:6px;font-size:14px;color:var(--sub);}
-  .radios .subinput input{width:60px;text-align:center;padding:4px 8px;}
-  .checkline{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;}
-  .checkline input{width:17px;height:17px;accent-color:var(--deep);}
-  .note{font-size:13.5px;color:var(--sub);margin-top:10px;line-height:1.6;}
-  .ov{background:var(--goldbg);border:1px solid #E8D9A8;border-left:5px solid var(--gold);border-radius:12px;padding:16px 20px;margin-bottom:16px;}
-  .ov h2{font-size:17px;color:#7A5B00;margin-bottom:8px;}
-  .ov .ol{font-size:15px;color:#4A4433;padding:2px 0;}
-  .ov .ol b{color:#3D3200;}
-  .btnrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
-  .btn{border:none;border-radius:10px;padding:11px 22px;font-size:16px;cursor:pointer;font-family:inherit;}
-  .btn.deep{background:var(--deep);color:#fff;}
-  .btn.deep:hover{background:var(--deep2);}
-  .btn.gold{background:var(--gold);color:#3D2E00;font-weight:700;}
-  .btn.gold:hover{background:#C69415;}
-  .btn.ghost{background:#fff;color:var(--deep);border:1px solid #B9C6DA;}
-  .btn.ghost:hover{background:#F0F4F9;}
-  .btn.warn{background:#fff;color:var(--err);border:1px solid #E5C8C3;}
-  .btn.warn:hover{background:#FBEFED;}
-  #msg{margin-top:14px;font-size:14.5px;line-height:1.8;}
-  #msg.err{color:var(--err);}
-  #msg.ok{color:var(--ok);}
-  #savedAt{font-size:13.5px;color:var(--sub);margin-top:10px;}
-  footer{margin-top:26px;text-align:center;font-size:13px;color:var(--sub);line-height:1.8;}
-  #toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-24px);background:rgba(27,42,74,.94);color:#fff;padding:11px 24px;border-radius:10px;font-size:15px;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;z-index:99;}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .custom-g{display:none;margin-top:4px;}
-  .custom-g input{font-size:14px;}
-  .lamp{width:10px;height:10px;border-radius:50%;background:#E8BC4F;box-shadow:0 0 8px #E8BC4F;animation:br 2s infinite;}
-  @keyframes br{50%{opacity:.35;}}
-.crumbs{display:flex;gap:2px;align-items:center;justify-content:center;font-size:13px;padding:5px 10px 7px;background:rgba(0,0,0,.20);flex-wrap:wrap}.crumbs a{color:#E8BC4F;text-decoration:none;padding:4px 7px;border-radius:6px;flex-shrink:0}.crumbs a:active{background:rgba(255,255,255,.15)}.crumbs b{color:rgba(255,255,255,.95);font-weight:600;flex-shrink:0}.crumbs .sep{color:rgba(255,255,255,.35);flex-shrink:0}
-.town-tbody td[data-label="成绩"]{white-space:nowrap;} /* 【v4.76】桌面单位与数值同行 */
-.town-tbody td[data-label="成绩"] input{width:calc(100% - 28px)!important;display:inline-block;vertical-align:middle;}
-.town-tbody td[data-label="成绩"] [data-unit]{display:inline-block;width:auto;vertical-align:middle;}
-@media (max-width:768px){ /* 【v4.75】手机端：镇记录每行→竖排卡片 */
-  table{min-width:0!important;} /* 【v4.75b】全局表格640px最小宽=手机溢出元凶，窄屏解除 */
-  .town-head{display:none;}
-  .town-tbody,.town-tbody tr{display:block;width:100%;}
-  .town-tbody tr{border:1px solid #E3D9C2;border-radius:10px;margin:0 0 12px;padding:10px 40px 10px 10px;background:#FFFDF7;position:relative;}
-  .town-tbody td{display:flex;align-items:center;border:none!important;padding:5px 0;}
-  .town-tbody td[data-label]::before{content:attr(data-label);flex:0 0 44px;width:44px;color:#8A7B4F;font-size:12.5px;text-align:right;margin-right:10px;}
-  .town-tbody td input,.town-tbody td select{flex:1 1 auto;width:auto!important;min-width:0;}
-  .town-tbody td:last-child{position:absolute;top:8px;right:10px;width:auto!important;padding:0;}
-  .town-tbody td:last-child::before{content:none;}
-  .town-tbody td [data-unit]{flex:0 0 auto;margin-left:6px;}
-}
-</style>
-<style>
-  nav{position:sticky;top:0;z-index:50;background:rgba(20,33,61,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(217,165,33,.25);}
-  .nav-in{flex-wrap:wrap;max-width:860px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.crumbs{display:flex;gap:2px;align-items:center;justify-content:center;font-size:13px;padding:5px 10px 7px;background:rgba(0,0,0,.20);flex-wrap:wrap}.crumbs a{color:#E8BC4F;text-decoration:none;padding:4px 7px;border-radius:6px;flex-shrink:0}.crumbs a:active{background:rgba(255,255,255,.15)}.crumbs b{color:rgba(255,255,255,.95);font-weight:600;flex-shrink:0}.crumbs .sep{color:rgba(255,255,255,.35);flex-shrink:0}
-</style>
-</head>
-<body><nav><div class="nav-in"><div class="brand" style="color:#fff;display:flex;align-items:center;gap:10px;flex-shrink:0"><span style="display:inline-block;flex-shrink:0;font-size:22px;line-height:1;align-self:center;animation:br 2s infinite">🏃</span><b style="font-size:17px;line-height:1.2;color:#E8BC4F;letter-spacing:1px">运动会管理系统</b></div><div class="nav-right"><div style="display:flex;gap:8px;align-items:center;flex-shrink:0;"><button type="button" id="btnOut" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:14px;padding:7px 14px;cursor:pointer;font-family:inherit;font-weight:600;">🚪 退出登录</button></div></div></div>
-<div class="crumbs"><a href="/apps/sports/home.html">班主任工作台</a><span class="sep">›</span><b>基础配置</b></div>
-</nav>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>运动会管理系统 · 多校版</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314233b'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle'%3E🏃%3C/text%3E%3C/svg%3E"><style>
+:root{--deep:#14213D;--deep2:#1D2D50;--gold:#E8BC4F;--bg:#F4F6FA;--card:#fff;--sub:#5B6577;--ok:#2E9E5B;--err:#D64545;--line:#DFE4EC}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#22303F;min-height:100vh}
+nav{background:var(--deep);color:#fff}
+.nav-in{max-width:960px;margin:0 auto;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+.brand .ic{font-size:22px}
+.brand small{font-size:12px;opacity:.72;font-weight:400}
+.btn-adm{background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:13px;padding:6px 13px;cursor:pointer;text-decoration:none;font-weight:600;white-space:nowrap}
+.btn-home{background:transparent;color:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.5);border-radius:9px;font-size:13px;padding:6px 13px;text-decoration:none;font-weight:600;white-space:nowrap}
+.btn-home:hover{background:rgba(255,255,255,.15)}
+.wrap{max-width:960px;margin:0 auto;padding:24px 16px 30px}
+.hero{text-align:center;margin-bottom:22px}
+.hero h1{font-size:25px;color:var(--deep)}
+.hero h1 em{color:var(--gold);font-style:normal}
+.hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
+.feat{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.feat span{font-size:12px;color:#1D2D50;background:rgba(232,188,79,.16);border:1px solid rgba(232,188,79,.45);border-radius:999px;padding:4px 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(20,33,61,.04)}
+.card h2{font-size:17px;color:var(--deep);display:flex;align-items:center;gap:8px}
+.card .sub{font-size:12.5px;color:var(--sub);margin:4px 0 16px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:#22303F}
+.field input:focus,.field select:focus{outline:none;border-color:var(--gold)}
+.p{width:100%;background:var(--deep);color:var(--gold);border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.p:hover{background:var(--deep2)}
+.p.gold{background:var(--gold);color:var(--deep)}
+.msg{font-size:13px;margin-top:10px;min-height:18px}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
+.tea{font-size:12.5px;color:var(--sub);margin-top:12px;text-align:center}
+.tea a{color:var(--deep);font-weight:600}
+.foot{max-width:960px;margin:0 auto;padding:6px 16px 44px;text-align:center;font-size:13px;color:var(--sub)}
+.foot a{color:var(--deep);text-decoration:none;font-weight:700}
+.foot a:hover{color:var(--gold)}
+</style></head><body>
+<nav><div class="nav-in">
+  <div class="brand"><span class="ic">🏃</span><div>运动会管理系统 <small>多校版</small></div></div>
+  <a class="btn-home" href="/">← 返回工具站</a>  <a class="btn-adm" href="/sports/admin">⚙️ 后台管理</a>
+</div></nav>
 <div class="wrap">
-
-  <header class="top">
-    <h1>基础配置</h1>
-    <p>学校信息 · 比赛项目 · 年级班级 · 计分规则（含破纪录政策）</p>
-  </header>
-
-  <div class="hintbar">ℹ️ 此页为<b>管理员功能</b>。按需求第5、6条：全站需登录使用，本页在 M2（账号权限）完成后将挂在管理员账号下；当前手搓阶段先直开。所有改动需点“保存到本机”才生效。</div>
-
-  <div class="ov">
-    <h2>📋 当前配置概览（实时）</h2>
-    <div id="ovBody"><div class="ol">加载中…</div></div>
+  <div class="hero">
+    <h1>🏃 学校运动会 <em>一站式管理</em></h1>
+    <p>报名、计分、汇总全自动 —— 每校独立程序、独立数据，互不影响</p>
+    <div class="feat"><span>📝 班主任报名</span><span>✏️ 成绩录入</span><span>📊 实时积分榜</span><span>📦 学年归档复用</span></div>
   </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">1</span><h2>基本信息</h2><span class="tail">校名与届名将印在程序册、汇总表抬头</span></div>
-    <div class="grid">
-      <div class="fld"><label>学校名称</label><input type="text" id="inpSchool"></div>
-      <div class="fld"><label>运动会名称（届次）</label><input type="text" id="inpMeet"></div>
-      <div class="fld"><label>田赛日（周四下午）</label><input type="date" id="inpFieldDay"></div>
-      <div class="fld"><label>径赛日（周五上午）</label><input type="date" id="inpTrackDay"></div>
+  <div class="grid">
+    <div class="card">
+      <h2>🔑 进入本校系统</h2>
+      <p class="sub">选好学校点"进入"，到学校登录页选身份登录</p>
+      <form id="fL" onsubmit="return navSch(event)">
+        <div class="field"><label>选择学校</label><select id="sch"><option value="">加载中…</option></select></div>
+        <button class="p" type="submit" id="go">进 入 →</button>
+      </form>
+      <div class="msg" id="msgL"></div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">2</span><h2>年级与班级</h2><span class="tail">需求第7条：班数每年变化，灵活设置</span></div>
-    <div class="fld" style="margin-bottom:12px;max-width:220px;"><label>年级数</label>
-      <select id="selGradeCount"></select>
-    </div>
-    <div class="grows" id="gradeRows"></div>
-    <div class="note">当前默认值取自 2025 年 4 月运动会程序册的真实班数（一5 / 二6 / 三7 / 四9 / 五8，共35班）。每年在此改一遍即可。</div>
-  </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">3</span><h2>比赛项目</h2><span class="tail">需求第5条：项目可添加修改</span></div>
-    <div class="tscroll">
-      <table>
-        <thead><tr><th>项目名称</th><th>类型</th><th>适用年级</th><th>计分</th><th>形式</th><th></th></tr></thead>
-        <tbody id="evBody"></tbody>
-      </table>
-    </div>
-    <button class="add" id="btnAddEv" type="button">＋ 添加项目</button>
-    <div class="note">默认表按 2025 年程序册预置（铅球与400米、混合接力仅三至五年级；接力双倍计分）。趣味项目（快乐传送、动力火车）是教师项目不计班级分，不列入此表——是否由系统记录，见续航笔记“待拍板”。</div>
-  </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">4</span><h2>计分规则</h2><span class="tail">需求第3条</span></div>
-    <div class="fld"><label>各名次得分（前六名，须递减）</label></div>
-    <div class="ranks" id="rankRow"></div>
-    <div class="fld" style="margin-top:16px;"><label>破纪录加分（历届口径变过：乡镇加10分 / 区加20分 / 不加分）</label></div>
-    <div class="radios">
-      <label><input type="radio" name="recMode" value="off"> 不加分（破纪录只换新纪录，不加分）</label>
-      <label><input type="radio" name="recMode" value="uniform" checked> 统一加分 <span class="subinput">破纪录每项加 <input type="number" id="inpRecUniform" min="1" max="50" value="10"> 分</span></label>
-      <label><input type="radio" name="recMode" value="graded"> 分级加分 <span class="subinput">乡镇级 <input type="number" id="inpRecTown" min="1" max="50" value="10"> 分 ｜ 区级 <input type="number" id="inpRecDistrict" min="1" max="50" value="20"> 分</span></label>
-    </div>
-    <label class="checkline"><input type="checkbox" id="inpRecConfirm" checked> 新纪录须管理员确认后才生效（防止误录改写校史记录）</label>
-  </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">4½</span><h2>🏘️ 镇记录</h2><span class="tail">【v4.76】单位紧贴数值右侧（手机电脑一致） · 单位智能：田赛=米/纯秒=秒/分秒格式(1.09.74)不标 · 随成绩格式即时刷新 · 成绩格自动带单位 · 破纪录即时比对 · 输入即自动保存 · Excel式键盘导航</span></div>
-    <div class="note">录镇（乡镇/街道）运动会的各项目纪录——成绩录入时自动比对：成绩优于镇记录，系统自动标「⚡破镇纪录待确认」，管理员在成绩录入页点「🏅 破纪录确认」后才换纪录、计加分（确认前不加分）。项目下拉自动列出比赛项目推导的选项（男子/女子 + 项目名，接力=混合）；下拉尾部「＋新增项目…」可添加历史项目（以前有、现在不比赛的项目也可留档）。破纪录判定：径赛比时间（小者优），田赛比高度/远度（大者优）。只录需要的项目即可，没录的项目不比对。</div>
-    <div style="margin-top:10px;">
-      <div style="margin-bottom:18px;">
-        <div style="text-align:center;font-weight:bold;color:#1B2A4A;padding:4px;">男子最佳成绩</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
-          <thead class="town-head"><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">姓名</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">成绩</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">单位</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">时间</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">地点</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
-          <tbody id="townM" class="town-tbody"></tbody>
-        </table>
-        <button type="button" data-townadd="townM" style="margin-top:8px;padding:7px 14px;border-radius:8px;border:1px dashed #C9B87A;background:#FFF9E8;color:#5B6577;cursor:pointer;">＋ 添加项目</button>
-      </div>
-      <div style="margin-bottom:18px;">
-        <div style="text-align:center;font-weight:bold;color:#1B2A4A;padding:4px;">女子最佳成绩</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
-          <thead class="town-head"><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">姓名</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">成绩</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">单位</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">时间</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">地点</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
-          <tbody id="townF" class="town-tbody"></tbody>
-        </table>
-        <button type="button" data-townadd="townF" style="margin-top:8px;padding:7px 14px;border-radius:8px;border:1px dashed #C9B87A;background:#FFF9E8;color:#5B6577;cursor:pointer;">＋ 添加项目</button>
-      </div>
-    </div>
-    <div style="margin-top:12px;">
-      <div style="text-align:center;font-weight:bold;color:#1B2A4A;padding:4px;">混合与接力</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
-        <thead class="town-head"><tr style="background:#F7F1E3;"><th style="padding:6px 8px;border:1px solid #E3D9C2;">项目</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">姓名</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">成绩</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">单位</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">时间</th><th style="padding:6px 8px;border:1px solid #E3D9C2;">地点</th><th style="padding:6px 8px;border:1px solid #E3D9C2;"></th></tr></thead>
-        <tbody id="townX" class="town-tbody"></tbody>
-      </table>
-      <button type="button" data-townadd="townX" style="margin-top:8px;padding:7px 14px;border-radius:8px;border:1px dashed #C9B87A;background:#FFF9E8;color:#5B6577;cursor:pointer;">＋ 添加项目</button>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
-      <button class="btn" id="btnTownSave" type="button">💾 保存镇记录</button>
-      <span id="townMsg" style="color:#B03A2E;font-size:13px;"></span>
+    <div class="card">
+      <h2>🏫 开通新学校</h2>
+      <p class="sub">填好信息即刻生成贵校专属系统（网址：tl.efcc.cc/sports/贵校拼音）</p>
+      <div class="field"><label>学校名称</label><input id="rName" placeholder="如：实验小学"></div>
+      <div class="field"><label>拼音后缀（小写字母，作网址用）</label><input id="rSlug" placeholder="如 shixiao → /sports/shixiao"></div>
+      <div class="field"><label>本校总管理员密码（至少6位）</label><input id="rPw" type="password" placeholder="建议好记的长密码" autocomplete="new-password" onfocus="this.removeAttribute('readonly')" readonly></div>
+      <div class="field"><label>密码提示（备忘，不存明文）</label><input id="rHint" placeholder="如：校名简称+年份"></div>
+      <button class="p gold" id="btnReg" type="button">🚀 立即开通</button>
+      <div class="msg" id="msgR"></div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">5</span><h2>时间窗</h2><span class="tail">需求第5条：报名锁定 / 录入窗口自动开关</span></div>
-    <div class="grid">
-      <div class="fld"><label>报名截止（逾期班级端自动锁定）</label><input type="datetime-local" id="inpEntryEnd"></div>
-      <div class="fld"><label>运动会开始</label><input type="datetime-local" id="inpMeetStart"></div>
-      <div class="fld"><label>运动会结束</label><input type="datetime-local" id="inpMeetEnd"></div>
-      <div class="fld"><label>成绩公示期结束（录入窗口关闭）</label><input type="datetime-local" id="inpPubEnd"></div>
-    </div>
-    <div class="note">四个时间须依次排开：报名截止 ≤ 运动会开始 ≤ 运动会结束 ≤ 公示期结束。填齐后概览区会自动检查顺序。</div>
-  </div>
-
-  <div class="card">
-    <div class="sec"><span class="num">6</span><h2>保存 / 导出</h2></div>
-    <div class="btnrow">
-      <button class="btn deep" id="btnSave" type="button">💾 保存到本机</button>
-      <button class="btn gold" id="btnExport" type="button">⬇ 导出配置 JSON</button>
-      <button class="btn ghost" id="btnImport" type="button">⬆ 导入配置 JSON</button>
-      <button class="btn warn" id="btnReset" type="button">恢复默认</button>
-      <input type="file" id="fileImport" accept=".json" style="display:none;">
-    </div>
-    <div id="msg"></div>
-    <div id="savedAt"></div>
-    <div class="note">导出的 JSON 就是将来“积木#1（配置表单积木）”的输入规格——手搓页会被删除重做，但这份配置结构会沉淀进平台。</div>
-  </div>
-
-  <footer>运动会平台 · 第1步地基 · M1 基础配置 手搓版 v1<br>方法论：删除重做法（做模块→想积木→建积木→删手搓→重生成→验证）</footer>
 </div>
-<div id="toast"></div>
-
+<div class="foot">← <a href="/">返回欢乐工具站</a> ｜ 运动会管理系统 · 欢乐出品</div>
 <script>
-"use strict";
-var LS_KEY = "ydh_m1_config_v1";
-var GRADE_NAMES = ["一年级","二年级","三年级","四年级","五年级","六年级"];
-
-function defaultConfig(){
-  return {
-    meta:{ page:"M1基础配置", handcraft:"v1", exportedAt:"" },
-    school:{ name:"羊里小学", meetName:"2027年春季运动会" },
-    schedule:{ fieldDay:"", trackDay:"" },
-    grades:[
-      {name:"一年级",classes:5},{name:"二年级",classes:6},{name:"三年级",classes:7},
-      {name:"四年级",classes:9},{name:"五年级",classes:8}
-    ],
-    events:[
-      {name:"60米",type:"径赛",grades:"all",custom:"",scoring:"标准",form:"个人"},
-      {name:"200米",type:"径赛",grades:"all",custom:"",scoring:"标准",form:"个人"},
-      {name:"400米",type:"径赛",grades:"3-5",custom:"",scoring:"标准",form:"个人"},
-      {name:"跳高",type:"田赛",grades:"all",custom:"",scoring:"标准",form:"个人"},
-      {name:"跳远",type:"田赛",grades:"all",custom:"",scoring:"标准",form:"个人"},
-      {name:"铅球",type:"田赛",grades:"3-5",custom:"",scoring:"标准",form:"个人"},
-      {name:"4×100米混合接力",type:"径赛",grades:"3-5",custom:"",scoring:"双倍",form:"团体"}
-    ],
-    scoring:{ ranks:[7,5,4,3,2,1] },
-    record:{ mode:"uniform", uniform:10, town:10, district:20, needConfirm:true },
-    windows:{ entryDeadline:"", meetStart:"", meetEnd:"", publicityEnd:"" }
-  };
-}
-
-/* ---------- 工具 ---------- */
-function $(id){ return document.getElementById(id); }
-function pad3(n){ return String(n).padStart(3,"0"); }
-function toast(t){
-  var el=$("toast"); el.textContent=t; el.classList.add("show");
-  clearTimeout(el._tm); el._tm=setTimeout(function(){ el.classList.remove("show"); },2400);
-}
-function esc(s){
-  return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
-/* ---------- 渲染 ---------- */
-function fillGradeCount(){
-  var sel=$("selGradeCount"), i, op;
-  sel.innerHTML="";
-  for(i=1;i<=6;i++){
-    op=document.createElement("option");
-    op.value=i; op.textContent=i+" 个年级";
-    sel.appendChild(op);
-  }
-}
-function renderGrades(grades){
-  var box=$("gradeRows"); box.innerHTML="";
-  $("selGradeCount").value=grades.length;
-  grades.forEach(function(g,i){
-    var d=document.createElement("div"); d.className="grow";
-    d.innerHTML='<span class="gn">'+esc(g.name)+'</span>'+
-      '<input type="number" min="1" max="15" step="1" value="'+g.classes+'" data-gi="'+i+'">'+
-      '<span class="gu">个班</span>';
-    box.appendChild(d);
-  });
-}
-function renderEvents(events){
-  var tb=$("evBody"); tb.innerHTML="";
-  events.forEach(function(ev,i){
-    var tr=document.createElement("tr");
-    var gsel='<select data-ei="'+i+'" data-ek="grades">'+
-      '<option value="all"'+(ev.grades==="all"?" selected":"")+'>全部年级</option>'+
-      '<option value="3-5"'+(ev.grades==="3-5"?" selected":"")+'>仅3-5年级</option>'+
-      '<option value="custom"'+(ev.grades==="custom"?" selected":"")+'>自定义</option></select>'+
-      '<div class="custom-g" style="'+(ev.grades==="custom"?"display:block":"")+'">'+
-      '<input type="text" placeholder="如：4-5年级" value="'+esc(ev.custom||"")+'" data-ei="'+i+'" data-ek="custom"></div>';
-    tr.innerHTML=
-      '<td><input type="text" value="'+esc(ev.name)+'" data-ei="'+i+'" data-ek="name"></td>'+
-      '<td><select data-ei="'+i+'" data-ek="type">'+
-        '<option'+(ev.type==="径赛"?" selected":"")+'>径赛</option><option'+(ev.type==="田赛"?" selected":"")+'>田赛</option></select></td>'+
-      '<td>'+gsel+'</td>'+
-      '<td><select data-ei="'+i+'" data-ek="scoring">'+
-        '<option'+(ev.scoring==="标准"?" selected":"")+'>标准</option><option'+(ev.scoring==="双倍"?" selected":"")+'>双倍</option></select></td>'+
-      '<td><select data-ei="'+i+'" data-ek="form">'+
-        '<option'+(ev.form==="个人"?" selected":"")+'>个人</option><option'+(ev.form==="团体"?" selected":"")+'>团体</option></select></td>'+
-      '<td><button class="del" type="button" data-del="'+i+'">删</button></td>';
-    tb.appendChild(tr);
-  });
-}
-function renderRanks(ranks){
-  var box=$("rankRow"); box.innerHTML="";
-  for(var i=0;i<6;i++){
-    var d=document.createElement("div"); d.className="rk";
-    d.innerHTML='<span>第'+(i+1)+'名</span><input type="number" min="0" max="99" step="1" value="'+(ranks[i]!=null?ranks[i]:"")+'" data-rank="'+i+'">';
-    box.appendChild(d);
-  }
-}
-function render(c){
-  $("inpSchool").value=c.school.name||"";
-  $("inpMeet").value=c.school.meetName||"";
-  $("inpFieldDay").value=c.schedule.fieldDay||"";
-  $("inpTrackDay").value=c.schedule.trackDay||"";
-  renderGrades(c.grades);
-  renderEvents(c.events);
-  renderRanks(c.scoring.ranks);
-  var radios=document.getElementsByName("recMode");
-  for(var i=0;i<radios.length;i++){ radios[i].checked=(radios[i].value===c.record.mode); }
-  $("inpRecUniform").value=c.record.uniform;
-  $("inpRecTown").value=c.record.town;
-  $("inpRecDistrict").value=c.record.district;
-  $("inpRecConfirm").checked=!!c.record.needConfirm;
-  $("inpEntryEnd").value=c.windows.entryDeadline||"";
-  $("inpMeetStart").value=c.windows.meetStart||"";
-  $("inpMeetEnd").value=c.windows.meetEnd||"";
-  $("inpPubEnd").value=c.windows.publicityEnd||"";
-  updateOverview();
-}
-
-/* ---------- 收集 ---------- */
-function collect(){
-  var c=defaultConfig();
-  c.school.name=$("inpSchool").value.trim();
-  c.school.meetName=$("inpMeet").value.trim();
-  c.schedule.fieldDay=$("inpFieldDay").value;
-  c.schedule.trackDay=$("inpTrackDay").value;
-  var gc=parseInt($("selGradeCount").value,10)||5;
-  var rows=$("gradeRows").querySelectorAll("input[data-gi]");
-  c.grades=[];
-  for(var i=0;i<gc;i++){
-    var v=5;
-    if(rows[i]){ v=parseInt(rows[i].value,10); if(!(v>=1&&v<=15)) v=5; }
-    c.grades.push({name:GRADE_NAMES[i],classes:v});
-  }
-  var trs=$("evBody").querySelectorAll("tr");
-  c.events=[];
-  trs.forEach(function(tr){
-    function val(ek){
-      var el=tr.querySelector('[data-ek="'+ek+'"]');
-      return el?el.value:"";
-    }
-    var ev={ name:val("name").trim(), type:val("type"), grades:val("grades"),
-      custom:(tr.querySelector('[data-ek="custom"]')||{value:""}).value.trim(),
-      scoring:val("scoring"), form:val("form") };
-    c.events.push(ev);
-  });
-  c.scoring.ranks=[];
-  for(var r=0;r<6;r++){
-    var el=document.querySelector('[data-rank="'+r+'"]');
-    c.scoring.ranks.push(el?parseInt(el.value,10)||0:0);
-  }
-  var mode="uniform";
-  var rs=document.getElementsByName("recMode");
-  for(var m=0;m<rs.length;m++){ if(rs[m].checked) mode=rs[m].value; }
-  c.record.mode=mode;
-  c.record.uniform=parseInt($("inpRecUniform").value,10)||10;
-  c.record.town=parseInt($("inpRecTown").value,10)||10;
-  c.record.district=parseInt($("inpRecDistrict").value,10)||20;
-  c.record.needConfirm=$("inpRecConfirm").checked;
-  c.windows.entryDeadline=$("inpEntryEnd").value;
-  c.windows.meetStart=$("inpMeetStart").value;
-  c.windows.meetEnd=$("inpMeetEnd").value;
-  c.windows.publicityEnd=$("inpPubEnd").value;
-  return c;
-}
-
-/* ---------- 校验 ---------- */
-function validate(c){
-  var errs=[];
-  if(!c.school.name) errs.push("学校名称未填");
-  if(!c.school.meetName) errs.push("运动会名称未填");
-  if(c.grades.length<1) errs.push("至少需要1个年级");
-  c.grades.forEach(function(g,i){
-    if(!(g.classes>=1&&g.classes<=15)) errs.push(g.name+"班数须在1-15之间");
-  });
-  var rs=c.scoring.ranks;
-  for(var i=0;i<6;i++){ if(!(rs[i]>0)) errs.push("第"+(i+1)+"名分值须为正整数"); }
-  for(var j=0;j<5;j++){ if(rs[j]<=rs[j+1]) errs.push("分值须严格递减（第"+(j+1)+"名应大于第"+(j+2)+"名）"); }
-  var names={};
-  c.events.forEach(function(ev,i){
-    if(!ev.name) errs.push("第"+(i+1)+"个项目名称未填");
-    else if(names[ev.name]) errs.push("项目名重复："+ev.name);
-    else names[ev.name]=1;
-    if(ev.grades==="custom"&&!ev.custom) errs.push((ev.name||"未命名项目")+"的自定义年级范围未填");
-  });
-  var warns=[];
-  var w=c.windows;
-  if(w.entryDeadline&&w.meetStart&&w.entryDeadline>w.meetStart) warns.push("报名截止晚于运动会开始");
-  if(w.meetStart&&w.meetEnd&&w.meetStart>w.meetEnd) warns.push("运动会开始晚于结束");
-  if(w.meetEnd&&w.publicityEnd&&w.meetEnd>w.publicityEnd) warns.push("运动会结束晚于公示期结束");
-  return {errs:errs,warns:warns};
-}
-
-/* ---------- 概览 ---------- */
-function fmtDT(s){
-  if(!s) return "—";
-  return s.replace("T"," ");
-}
-function updateOverview(){
-  var c=collect();
-  var v=validate(c);
-  var totalCls=c.grades.reduce(function(s,g){ return s+g.classes; },0);
-  var totalP=totalCls*8;
-  var jing=c.events.filter(function(e){return e.type==="径赛";}).length;
-  var tian=c.events.filter(function(e){return e.type==="田赛";}).length;
-  var dbl=c.events.filter(function(e){return e.scoring==="双倍";}).map(function(e){return e.name;}).join("、");
-  var recText="不加分";
-  if(c.record.mode==="uniform") recText="统一加 "+c.record.uniform+" 分";
-  if(c.record.mode==="graded") recText="乡镇级 "+c.record.town+" 分 / 区级 "+c.record.district+" 分";
-  if(c.record.needConfirm) recText+="（新纪录须管理员确认生效）";
-  var gradeTxt=c.grades.map(function(g){ return g.name.replace("年级","")+"·"+g.classes+"班"; }).join(" / ");
-  var w=c.windows;
-  var winText;
-  if(!w.entryDeadline&&!w.meetStart&&!w.meetEnd&&!w.publicityEnd){
-    winText='<span style="color:#8a7a3a">未设置（可在“时间窗”中填）</span>';
-  }else{
-    winText="报名截止 "+fmtDT(w.entryDeadline)+" ｜ 比赛 "+fmtDT(w.meetStart)+" 至 "+fmtDT(w.meetEnd)+" ｜ 公示至 "+fmtDT(w.publicityEnd);
-    if(v.warns.length){
-      winText+='<br><span style="color:#B03A2E">⚠ '+esc(v.warns.join("；"))+"</span>";
-    }
-  }
-  var html=
-    '<div class="ol">学校：<b>'+esc(c.school.name||"（未填）")+'</b> ｜ <b>'+esc(c.school.meetName||"（未填）")+'</b></div>'+
-    '<div class="ol">年级班级：<b>'+c.grades.length+' 个年级 · '+totalCls+' 个班</b>（'+esc(gradeTxt)+'）</div>'+
-    '<div class="ol">运动员规模：约 <b>'+totalP+' 名</b>（每班4男4女） ｜ 号码范围 <b>'+pad3(1)+' – '+pad3(totalP)+'</b>（三位数连排）</div>'+
-    '<div class="ol">比赛项目：<b>'+c.events.length+' 项</b>（径赛 '+jing+' / 田赛 '+tian+'）'+(dbl?' ｜ 双倍计分：'+esc(dbl):'')+'</div>'+
-    '<div class="ol">计分：前六名 <b>'+c.scoring.ranks.join("-")+'</b></div>'+
-    '<div class="ol">破纪录：<b>'+esc(recText)+'</b></div>'+
-    '<div class="ol">时间窗：'+winText+'</div>';
-  if(v.errs.length){
-    html+='<div class="ol" style="color:#B03A2E">⚠ 待修正：'+esc(v.errs.slice(0,3).join("；"))+(v.errs.length>3?" 等"+v.errs.length+"项":"")+'（详见保存区提示）</div>';
-  }
-  $("ovBody").innerHTML=html;
-}
-
-/* ---------- 保存 / 导出 / 导入 ---------- */
-function save(){
-  var c=collect(), v=validate(c);
-  var msg=$("msg");
-  if(v.errs.length){
-    msg.className="err";
-    msg.innerHTML="❌ 保存未通过，共 "+v.errs.length+" 处问题：<br>· "+v.errs.join("<br>· ");
-    toast("配置有 "+v.errs.length+" 处问题，未保存");
-    return;
-  }
-  c.meta.exportedAt=new Date().toISOString();
-  try{
-    localStorage.setItem(LS_KEY,JSON.stringify(c));
-  }catch(e){ /* 本机存储失败不拦——云端为准 */ }
-  /* 【v4.69】配置双保险：云端为主（换浏览器/换电脑都在），本机为辅 */
-  var fd=new FormData();fd.append("config",JSON.stringify(c));
-  fetch("/soft/api/config-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
-    if(d.ok){ msg.className="ok"; msg.innerHTML="✅ 已保存到云端（换浏览器/换电脑都在）"+(v.warns.length?'<br>⚠ 提醒：'+esc(v.warns.join("；")):""); $("savedAt").textContent="上次保存："+new Date().toLocaleString("zh-CN"); toast("已保存 ✅"); }
-    else{ msg.className="err"; msg.textContent="❌ 云端保存失败："+(d.msg||"未知错误")+"（本机已存，刷新后可能回退）"; }
-  }).catch(function(){ msg.className="err"; msg.textContent="❌ 网络异常，云端未保存（本机已存）"; });
-}
-function exportJson(){
-  var c=collect(), v=validate(c);
-  if(v.errs.length){ toast("还有 "+v.errs.length+" 处问题，请先修正再导出"); save(); return; }
-  c.meta.exportedAt=new Date().toISOString();
-  var d=new Date();
-  var fname="运动会配置-"+d.getFullYear()+pad3(d.getMonth()+1)+String(d.getDate()).padStart(2,"0")+".json";
-  var blob=new Blob([JSON.stringify(c,null,2)],{type:"application/json;charset=utf-8"});
-  var a=document.createElement("a");
-  a.href=URL.createObjectURL(blob); a.download=fname;
-  document.body.appendChild(a); a.click();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
-  toast("已导出："+fname);
-}
-function importJson(file){
-  var reader=new FileReader();
-  reader.onload=function(){
-    try{
-      var c=JSON.parse(reader.result);
-      if(!c||!c.school||!Array.isArray(c.grades)||!Array.isArray(c.events)||!c.scoring){
-        throw new Error("结构不完整（缺 school/grades/events/scoring）");
-      }
-      render(c);
-      toast("导入成功，请检查概览后点“保存到本机”");
-    }catch(e){
-      toast("导入失败："+e.message);
-    }
-  };
-  reader.readAsText(file,"utf-8");
-}
-
-/* ---------- 事件绑定 ---------- */
-$("btnSave").addEventListener("click",save);
-$("btnExport").addEventListener("click",exportJson);
-$("btnImport").addEventListener("click",function(){ $("fileImport").click(); });
-$("fileImport").addEventListener("change",function(){
-  if(this.files&&this.files[0]) importJson(this.files[0]);
-  this.value="";
-});
-$("btnReset").addEventListener("click",function(){
-  if($("btnReset").getAttribute("data-armed")!=="1"){$("btnReset").setAttribute("data-armed","1");$("btnReset").textContent="⚠ 再点=恢复默认";$("btnReset").style.background="#B03A2E";$("btnReset").style.color="#fff";setTimeout(function(){$("btnReset").removeAttribute("data-armed");$("btnReset").textContent="恢复默认";$("btnReset").style.background="";$("btnReset").style.color="";}, 3000);return;}
-    {
-    render(defaultConfig());
-    toast("已恢复默认（尚未保存，确认后请点保存）");
-  }
-});
-$("btnAddEv").addEventListener("click",function(){
-  var c=collect();
-  c.events.push({name:"",type:"径赛",grades:"all",custom:"",scoring:"标准",form:"个人"});
-  renderEvents(c.events);
-  updateOverview();
-  var trs=$("evBody").querySelectorAll("tr");
-  var last=trs[trs.length-1];
-  if(last){ var inp=last.querySelector('[data-ek="name"]'); if(inp) inp.focus(); }
-});
-$("evBody").addEventListener("click",function(e){
-  var t=e.target;
-  if(t.hasAttribute&&t.hasAttribute("data-del")){
-    var i=parseInt(t.getAttribute("data-del"),10);
-    var c=collect();
-    var ev=c.events[i];
-    if(t.getAttribute("data-armed")!=="1"){t.setAttribute("data-armed","1");t.textContent="确认?";t.style.background="#B03A2E";t.style.color="#fff";setTimeout(function(){t.removeAttribute("data-armed");t.textContent="删";t.style.background="";t.style.color="";}, 3000);return;}
-    if(1){
-      c.events.splice(i,1);
-      renderEvents(c.events);
-      updateOverview();
-    }
-  }
-});
-$("selGradeCount").addEventListener("change",function(){
-  var n=parseInt(this.value,10)||5;
-  var c=collect();
-  while(c.grades.length>n) c.grades.pop();
-  while(c.grades.length<n) c.grades.push({name:GRADE_NAMES[c.grades.length],classes:5});
-  renderGrades(c.grades);
-  updateOverview();
-});
-$("evBody").addEventListener("change",function(e){
-  var t=e.target;
-  if(t.getAttribute&&t.getAttribute("data-ek")==="grades"){
-    var box=t.parentNode.querySelector(".custom-g");
-    if(box) box.style.display=(t.value==="custom")?"block":"none";
-  }
-});
-/* =====【v4.70】镇记录管理（站长 11-21 指令：校记录从来没用过——撤卡片，镇记录顶主位） ===== */
-/* =====【v4.71】项目改下拉（池=比赛项目推导∪历史项目∪已录值，尾部可新增）；每条记录加「单位」 ===== */
-function townPool(cur){ /* 项目池：比赛项目实时推导 + localStorage 历史池 + 当前值兜底 */
-  var set={},arr=[];
-  var push=function(n){ n=(n||"").trim(); if(n&&!set[n]){set[n]=1;arr.push(n);} };
-  document.querySelectorAll('#evBody tr').forEach(function(tr){
-    var ni=tr.querySelector('[data-ek="name"]'); if(!ni)return;
-    var name=(ni.value||"").trim(); if(!name)return;
-    var fs=tr.querySelector('[data-ek="form"]');
-    var form=fs?fs.value:"个人";
-    if(/混合|团体/.test(name)) push(name);
-    else if(form==="团体") push("混合"+name);
-    else{ push("男子"+name); push("女子"+name); }
-  });
-  var extra=[]; try{ extra=JSON.parse(localStorage.getItem("town_extra_projects")||"[]"); }catch(e){ extra=[]; }
-  extra.forEach(push);
-  push(cur);
-  return arr;
-}
-function recRowAdd(tbId,std,value,holder,date,unit,place){
-  var tb=document.getElementById(tbId);
-  var tr=document.createElement("tr");
-  tr.innerHTML='<td data-label="项目"><select data-rk="std" style="width:95%;padding:4px;"></select></td>'
-    +'<td data-label="姓名"><input data-rk="holder" value="'+(holder||"")+'" placeholder="姓名" style="width:95%;"></td>'
-    +'<td data-label="成绩"><input data-rk="value" value="'+(value||"")+'" placeholder="径赛12.36 / 田赛1.85" style="width:95%;"><span data-unit style="margin-left:3px;color:#999;font-size:12px;white-space:nowrap;"></span></td>'
-    +'<td data-label="单位"><input data-rk="unit" value="'+(unit||"")+'" placeholder="辛兴学区" style="width:95%;"></td>'
-    +'<td data-label="时间"><input data-rk="date" value="'+(date||"")+'" placeholder="1999.10" style="width:95%;"></td>'
-    +'<td data-label="地点"><input data-rk="place" value="'+(place||"")+'" placeholder="羊里中学" style="width:95%;"></td>'
-    +'<td><button type="button" data-recdel style="color:#B03A2E;border:none;background:none;cursor:pointer;font-weight:bold;">✕</button></td>';
-  tb.appendChild(tr);
-  var unitEl=tr.querySelector("[data-unit]");
-  var fillUnit=function(){ /* 【v4.76】单位标注：田赛=米；分秒格式(1.09.74/1:05.56)不标(格式自明,正式成绩册惯例)；纯秒=秒 */
-    var std=sel.value||cur||"";
-    if(/跳高|跳远|三级跳|铅球|垒球|实心球|标枪|铁饼|链球|掷|投/.test(std)){unitEl.textContent="米";return;}
-    var vi=tr.querySelector('input[data-rk="value"]');
-    var pv=(typeof parsePerf==="function")?parsePerf(vi?vi.value:""):null;
-    unitEl.textContent=(pv&&pv.time)?"":"秒";
-  };
-  tr.__fillUnit__=fillUnit; /* 暴露给全局监听：成绩值变化时单位跟着变 */
-  var sel=tr.querySelector('select[data-rk="std"]');
-  var cur=std||"";
-  var fill=function(){ var pool=townPool(cur);
-    sel.innerHTML='<option value="">— 选项目 —</option>'
-      +pool.map(function(n){return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('')
-      +'<option value="__add__">＋新增项目…</option>'; };
-  fill(); fillUnit();
-  sel.addEventListener("mousedown",function(){ cur=sel.value&&sel.value!=="__add__"?sel.value:cur; fill(); }); /* 每次点开现读比赛项目表（防配置未加载时的空池） */
-  sel.addEventListener("change",function(){ fillUnit(); });
-  sel.addEventListener("change",function(){
-    fillUnit();
-    if(sel.value!=="__add__")return;
-    var n=(prompt("新增项目名（规则：男子/女子+项目名，如 男子800米；接力=混合4×100米）:")||"").trim();
-    if(!n){ fill(); return; }
-    var extra=[]; try{ extra=JSON.parse(localStorage.getItem("town_extra_projects")||"[]"); }catch(e){ extra=[]; }
-    if(extra.indexOf(n)<0)extra.push(n);
-    try{ localStorage.setItem("town_extra_projects",JSON.stringify(extra)); }catch(e){}
-    cur=n; fill(); fillUnit();
-  });
-}
-document.addEventListener("click",function(ev){
-  if(ev.target&&ev.target.hasAttribute("data-recdel"))ev.target.closest("tr").remove();
-});
-document.querySelectorAll("[data-townadd]").forEach(function(btn){
-  btn.addEventListener("click",function(){recRowAdd(btn.getAttribute("data-townadd"));});
-});
-/* 保存：level=town 存镇记录表（后端 v4.70 支持） */
-function saveTownRecords(isAuto){ /* 【v4.73】isAuto=true=输入即自动保存（不重拉表格，焦点不丢） */
-  var items=[],rows=document.querySelectorAll(".town-tbody tr");
-  rows.forEach(function(tr){
-    var g=function(k){var i=tr.querySelector('[data-rk="'+k+'"]');return i?i.value.trim():"";};
-    if(g("std")&&g("value")&&g("std")!=="__add__")items.push({std:g("std"),value:g("value"),holder:g("holder"),unit:g("unit"),date:g("date"),place:g("place")});
-  });
-  if(isAuto&&!items.length)return;
-  var fd=new FormData();fd.append("items",JSON.stringify(items));fd.append("level","town");
-  fetch("/soft/api/records-save",{method:"POST",body:fd}).then(function(r){return r.json()}).then(function(d){
-    var m=document.getElementById("townMsg");
-    if(d.ok){
-      if(isAuto){m.style.color="#1E8449";m.textContent="✅ 已自动保存 "+new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});}
-      else{m.style.color="#1E8449";m.textContent="✅ "+d.msg;fetchRecordsFill();}
-    }
-    else{m.style.color="#B03A2E";m.textContent="❌ "+(d.msg||"保存失败");}
-    setTimeout(function(){document.getElementById("townMsg").textContent="";},isAuto?2000:4000);
-  }).catch(function(){document.getElementById("townMsg").textContent="网络异常，请重试";});
-}
-document.getElementById("btnTownSave").addEventListener("click",function(){saveTownRecords(false);});
-/* =====【v4.73】Excel式键盘导航：回车=下一格（行末转下一行首格，最末格再加新行）；↑↓=同列上下行；→←=行内前后格（光标在首/尾时才切） ===== */
-document.addEventListener("keydown",function(ev){
-  var t=ev.target;
-  if(!t.matches||!t.matches('.town-tbody input[data-rk]'))return;
-  var tr=t.closest("tr"),tb=tr.parentNode;
-  var cells=Array.prototype.slice.call(tr.querySelectorAll('input[data-rk]'));
-  var col=cells.indexOf(t);
-  var trs=Array.prototype.slice.call(tb.querySelectorAll("tr"));
-  var row=trs.indexOf(tr);
-  var focus=function(el){ if(el){el.focus(); if(el.select&&el.tagName==="INPUT")try{el.select();}catch(e){}} };
-  var cellAt=function(r,c){ var r2=trs[r]; return r2?(r2.querySelectorAll('input[data-rk]')[c]||null):null; };
-  if(ev.key==="Enter"){
-    ev.preventDefault();
-    if(col<cells.length-1)focus(cells[col+1]);
-    else if(row<trs.length-1)focus(cellAt(row+1,0));
-    else{ saveTownRecords(true); recRowAdd(tb.id); var tb2=document.getElementById(tb.id);
-      setTimeout(function(){focus(tb2.querySelector("tr:last-child input[data-rk]"));},0); }
-    return;
-  }
-  if(ev.key==="ArrowDown"){ ev.preventDefault(); focus(cellAt(row+1,col)); return; }
-  if(ev.key==="ArrowUp"){ ev.preventDefault(); focus(cellAt(Math.max(0,row-1),col)); return; }
-  if(ev.key==="ArrowRight"){
-    var sel=t.selectionStart,len=(t.value||"").length;
-    if(sel===len&&sel===0?cells.length>1:true){ if(sel===len){ ev.preventDefault(); focus(cells[col+1]||cellAt(Math.min(trs.length-1,row+1),0)); } }
-    return;
-  }
-  if(ev.key==="ArrowLeft"){
-    if((t.selectionStart||0)===0&&t.selectionStart===t.selectionEnd){ ev.preventDefault(); focus(cells[col-1]||cellAt(Math.max(0,row-1),cells.length-1)); }
-    return;
-  }
-});
-
-var _townAutoTimer=null;
-function parsePerf(str){ /* 【v4.74】成绩解析：兼容 12.36 / 1:05.56 / 1.05.56(站长手滑双点) / 1:05:56 —— 返回{v:秒或米, time:是否多段时间} */
-  str=String(str||"").trim(); if(!str)return null;
-  str=str.replace(/：/g,":"); /* 全角冒号 → 时间分隔 */
-  str=str.replace(/[。．]/g,"."); /* 全角句号/半高句点 → 小数点（中文输入"12。36"=12.36秒） */
-  var dots=(str.match(/\./g)||[]).length;
-  if(dots>=2)str=str.replace(/\./,":"); /* 双点=分.秒.百分秒 → 首.转: */
-  if(str.indexOf(":")>=0){
-    var seg=str.split(":").map(parseFloat); if(seg.some(isNaN))return null;
-    var v=seg[0];
-    if(seg.length===2)v=seg[0]*60+seg[1];
-    else if(seg.length===3)v=seg[0]*3600+seg[1]*60+seg[2];
-    else if(seg.length===4)v=seg[0]*3600+seg[1]*60+seg[2]+seg[3]/100;
-    return {v:v,time:true};
-  }
-  var n=parseFloat(str); if(isNaN(n))return null;
-  return {v:n,time:false};
-}
-function isFieldStd(std){ return /跳高|跳远|三级跳|铅球|垒球|实心球|标枪|铁饼|链球|掷|投/.test(std||""); }
-function checkBreak(tr){ /* 【v4.74】同项目即时比对：新成绩优于已有纪录→提示确认替换（径赛小者胜，田赛大者胜） */
-  var std=tr.querySelector('select[data-rk="std"]').value;
-  var gi=tr.querySelector('input[data-rk="value"]');
-  var nv=parsePerf(gi.value); if(!std||!nv)return;
-  var field=isFieldStd(std);
-  var rows=Array.prototype.slice.call(tr.parentNode.querySelectorAll("tr"));
-  for(var i=0;i<rows.length;i++){
-    var r2=rows[i]; if(r2===tr)continue;
-    var s2=r2.querySelector('select[data-rk="std"]');
-    if(!s2||s2.value!==std)continue;
-    var ov=parsePerf(r2.querySelector('input[data-rk="value"]').value);
-    if(!ov)continue;
-    var ot=r2.querySelector('input[data-rk="value"]').value.trim();
-    var better=field?(nv.v>ov.v):(nv.v<ov.v);
-    if(better){
-      var oh=r2.querySelector('input[data-rk="holder"]').value.trim()||"未填";
-      if(confirm("⚡ 「"+std+"」新成绩 "+gi.value.trim()+(field?"米":"(时间)")+" 优于当前纪录 "+ot+"（"+oh+"）——确认替换为最新纪录？\n（确定=旧行清除，新行成为纪录；取消=两行都留着自己处理）")){
-        r2.remove();
-      }
-      break;
-    }
-  }
-}
-document.addEventListener("change",function(ev){ /* 【v4.73】输入即自动保存：任一格内容变化，停手1.5秒自动存云端 */
-  if(!ev.target.matches||!ev.target.matches(".town-tbody [data-rk]"))return;
-  if(ev.target.matches('input[data-rk="value"]')){
-    var tr=ev.target.closest("tr");
-    if(tr){ checkBreak(tr); if(tr.__fillUnit__)tr.__fillUnit__(); } /* 【v4.76】成绩改成分秒格式→单位自动消失 */
-  }
-  clearTimeout(_townAutoTimer);
-  _townAutoTimer=setTimeout(function(){saveTownRecords(true);},1500);
-});
-function fetchRecordsFill(){
-  fetch("/soft/api/records",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
-    var towns=(d&&d.town)||{}; /* 【v4.70】镇记录表（旧后端无 town 字段=空表，先部署 worker 再用） */
-    var cnt={townM:0,townF:0,townX:0};
-    Object.keys(towns).forEach(function(std){
-      var tbd=/男子/.test(std)?"townM":/女子/.test(std)?"townF":"townX";
-      recRowAdd(tbd,std,towns[std].value,towns[std].holder,towns[std].date,towns[std].unit,towns[std].place);
-      cnt[tbd]++;
-    });
-    /* 【v4.72】空表保底行：每张表至少一行可编辑 */
-    Object.keys(cnt).forEach(function(k){ if(!cnt[k])recRowAdd(k); });
-  }).catch(function(){});
-}
-fetchRecordsFill();
-document.addEventListener("input",updateOverview);
-document.addEventListener("change",updateOverview);
-
-/* ---------- 启动 ---------- */
-fillGradeCount();
-var msgEl=$("msg");
-/* 【v4.69】装载优先级：云端 → 本机 → 默认（云端为准，换浏览器不再丢配置） */
-fetch("/soft/api/config",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
-  var cloud=d&&d.config, local=null;
-  try{ local=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ local=null; }
-  /* 云端和本机都有：取更新的 */
-  var pick=null, src="";
-  if(cloud&&cloud.school&&local&&local.school){
-    var ct=cloud.meta&&cloud.meta.exportedAt?Date.parse(cloud.meta.exportedAt):0;
-    var lt=local.meta&&local.meta.exportedAt?Date.parse(local.meta.exportedAt):0;
-    pick=ct>=lt?cloud:local; src=ct>=lt?"云端":"本机";
-  }else if(cloud&&cloud.school){ pick=cloud; src="云端"; }
-  else if(local&&local.school){ pick=local; src="本机"; }
-  if(pick){ render(pick); msgEl.className="ok"; msgEl.innerHTML="ℹ️ 已载入"+src+"保存的配置。改完记得保存。"; $("savedAt").textContent=pick.meta&&pick.meta.exportedAt?("上次保存："+new Date(pick.meta.exportedAt).toLocaleString("zh-CN")):"尚未保存过"; }
-  else{ render(defaultConfig()); msgEl.className="ok"; msgEl.innerHTML="ℹ️ 已载入默认配置（2025年真实班数）。改完记得保存。"; $("savedAt").textContent="尚未保存过"; }
-}).catch(function(){
-  /* API 不通退本机/默认 */
-  var saved=null;
-  try{ saved=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ saved=null; }
-  if(saved&&saved.school){ render(saved); msgEl.innerHTML="ℹ️ 已载入本机保存的配置。"; }
-  else{ render(defaultConfig()); msgEl.innerHTML="ℹ️ 已载入默认配置（2025年真实班数）。"; }
-});
-
-/* v1.2 退出登录（站长 14:15 指正：M1 没有退出按钮） */
-document.getElementById("btnOut").addEventListener("click",function(){
-  fetch("/soft/__auth/logout",{method:"POST"}).then(function(){location.replace("/soft/sports/home.html")})
-  .catch(function(){location.replace("/soft/sports/home.html")});
-});
-</script>
-</body>
-</html>
+var schSel=document.getElementById("sch");
+function esc(x){return String(x).replace(/</g,"&lt;")}
+function syncA(){var v=schSel.value;}
+function navSch(e){e.preventDefault();var v=schSel.value;if(!v){var m=document.getElementById("msgL");m.className="msg err";m.textContent="请先选学校（列表加载中或暂无学校）";return false}location.href="/sports/"+v+"/";return false}
+fetch("/sports/api/schools").then(function(r){return r.json()}).then(function(d){
+if(!d.ok||!d.schools.length){schSel.innerHTML='<option value="">暂无学校 · 请先在旁边开通</option>';document.getElementById("go").disabled=true;return}
+schSel.innerHTML=d.schools.map(function(x){return '<option value="'+esc(x.slug)+'">'+esc(x.name)+"</option>"}).join("");
+syncA();
+}).catch(function(){schSel.innerHTML='<option value="">学校列表加载失败，刷新重试</option>'});
+schSel.onchange=syncA;
+document.getElementById("btnReg").onclick=function(){
+var name=document.getElementById("rName").value.trim();
+var slug=document.getElementById("rSlug").value.trim().toLowerCase();
+var pw=document.getElementById("rPw").value;
+var hint=document.getElementById("rHint").value.trim();
+var m=document.getElementById("msgR");
+if(!name||!slug||!pw){m.className="msg err";m.textContent="请把学校名称、拼音后缀、密码都填上";return}
+m.className="msg";m.textContent="开通中，约需十几秒…";
+fetch("/sports/api/reg",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,slug:slug,pwd:pw,hint:hint})})
+.then(function(r){return r.json()}).then(function(d){
+if(d.ok){m.className="msg ok";m.textContent="✅ 已开通！地址 /sports/"+esc(slug)+"，正在带您前往…";setTimeout(function(){location.href="/sports/"+slug},1700)}
+else{m.className="msg err";m.textContent=d.msg||"开通失败"}
+}).catch(function(){m.className="msg err";m.textContent="网络异常，请重试"});
+};
+</script></body></html>
