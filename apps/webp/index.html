@@ -80,12 +80,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 @media(max-width:640px){.hero h1{font-size:20px}.drop{padding:30px 14px}.item{flex-wrap:wrap}.pbar{width:100%}.settings{padding:12px}}
 #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 22px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 #toast.show{opacity:.95}
+.pill{display:inline-block;padding:7px 16px;border:1.5px solid rgba(27,74,122,.3);border-radius:99px;background:#fff;color:#1B4A7A;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s}
+.pill:hover{background:#1B4A7A;color:#fff;border-color:#1B4A7A}
 </style>
 </head>
 <body>
 <div class="topbar"><div class="wrap">
   <div class="brand"><span class="logo">图</span>图片转 WebP</div>
-  <nav><a href="/">← 返回工具站</a><a href="/fy">翻译</a></nav>
+  <nav><a class="pill" href="/">← 返回工具站</a></nav>
 </div></div>
 
 <div class="wrap">
