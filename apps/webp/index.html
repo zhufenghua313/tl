@@ -30,6 +30,8 @@ a{color:var(--blue);text-decoration:none}
 .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
 .logbox{display:none;margin:10px auto 0;padding:10px 14px;background:#f6f8fb;border:1px dashed #b6c4d6;border-radius:10px;font:11px/1.8 ui-monospace,Consolas,monospace;color:#42526e;text-align:left;word-break:break-all}
 .logbox .lt{color:#8896ab}
+.toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(16px);max-width:86%;background:#1B4A7A;color:#fff;font-size:13px;line-height:1.5;padding:10px 18px;border-radius:24px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 6px 18px rgba(27,74,122,.35);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* 设置条 */
 .settings{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:16px 18px;margin-top:16px}
 .set{display:flex;align-items:center;gap:8px;font-size:14px}
@@ -109,6 +111,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   </label>
   <input type="file" id="fileInput" accept="image/*" multiple class="vh">
   <div class="logbox" id="logbox"></div>
+  <div class="toast" id="toast"></div>
 
   <div class="card settings" id="settings" style="display:none">
     <div class="set"><label>质量</label><input type="range" id="quality" min="10" max="100" value="82"><span class="qval" id="qval">82</span></div>
@@ -141,7 +144,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
   <div class="foot">
     <span class="priv">🔒 图片全程在本机浏览器里转换，不会上传到任何服务器</span><br>
-    欢乐工具站 · 自用工具箱 · 工具页 v8
+    欢乐工具站 · 自用工具箱 · 工具页 v9
   </div>
 </div>
 
@@ -232,7 +235,7 @@ listEl.addEventListener('click',function(e){
   }
 });
 
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},1900)}
+function toast(m){if(!toastEl){__log('提示：'+m);return}toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},1900)}
 function fmt(b){return b>1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB'}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
@@ -311,7 +314,9 @@ function render(){
     }
     html+='<div class="card item">'
       +'<img class="thumb" id="th'+i+'" alt="">'
-      +'<div class="finfo"><div class="fname">'+esc(it.f.name)+'</div><div class="fmeta">'+meta+'</div></div>'
+      +'<div class="finfo"><div class="fname">'
+      +(it.status==='done'?esc(it.f.name.replace(/\.[^.]+$/,''))+'.webp <span style="color:#8896ab;font-size:11px">(原 '+esc(it.f.name)+')</span>':esc(it.f.name))
+      +'</div><div class="fmeta">'+meta+'</div></div>'
       +'<div class="pbar"><i id="pb'+i+'"></i></div>'
       +(it.status==='done'?'<a class="btn btn-sm btn-main dl" data-i="'+i+'" download="'+esc(it.f.name.replace(/\.[^.]+$/,''))+'.webp" href="'+it.out.url+'">下载</a>':'')
       +'</div>';
@@ -469,28 +474,13 @@ clearBtn.addEventListener('click',function(){
 /* 双通道下载：APP里走原生下载桥；浏览器里 jsDelivr 挂了自动切 GitHub raw */
 var softDl=document.getElementById('softDl');
 softDl.addEventListener('click',function(e){
+  /* 只在APP里接管（弹"选下载方式"框）；电脑浏览器不拦截，让浏览器原生下载
+     （v8及以前的"先探测再代点"在电脑上会被浏览器判定非真人点击而拦截，已拆除） */
   var B=window.HuanleTL;
   if(B&&B.downloadUrl){
     e.preventDefault();
-    try{B.downloadUrl(this.href);toast('已交给系统下载器，看通知栏进度')}
+    try{B.downloadUrl(this.href);toast('已交给APP，选「浏览器下载（推荐）」')}
     catch(err){toast('下载器没响应，请截图告诉我')}
-    return;
-  }
-  if(softDl.dataset.swap)return;
-  e.preventDefault();
-  var probe=new XMLHttpRequest();
-  probe.open('HEAD',softDl.href);
-  probe.timeout=6000;
-  probe.onload=function(){
-    if(probe.status>=200&&probe.status<400){softDl.dataset.swap='1';softDl.click();setTimeout(function(){delete softDl.dataset.swap},1000)}
-    else{fallback()}
-  };
-  probe.onerror=fallback;
-  probe.ontimeout=fallback;
-  function fallback(){
-    softDl.href='https://tv.efcc.cc/Honeyview.rar';
-    softDl.dataset.swap='1';softDl.click();setTimeout(function(){delete softDl.dataset.swap},1000);
-    toast('主链接不通，已切备用线下载');
   }
 });
 })();
