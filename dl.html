@@ -2,26 +2,70 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>提取码下载 · 欢乐工具站</title><style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#12395f,#1B4A7A);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-.card{background:#fff;border-radius:18px;padding:36px 30px;max-width:360px;width:88%;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center}
+.card{background:#fff;border-radius:18px;padding:36px 30px;max-width:400px;width:88%;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center}
 .gold{display:inline-block;width:44px;height:6px;background:#C9A227;border-radius:3px;margin-bottom:14px}
 h1{font-size:20px;color:#1B4A7A;margin:0 0 6px}
-p{font-size:13px;color:#6b7a90;margin:0 0 22px}
+p.sub{font-size:13px;color:#6b7a90;margin:0 0 22px}
 input{width:100%;box-sizing:border-box;font-size:18px;letter-spacing:4px;text-align:center;padding:12px;border:2px solid #d7dfea;border-radius:10px;outline:none;color:#1B4A7A}
 input:focus{border-color:#1B4A7A}
 button{width:100%;margin-top:14px;padding:12px;font-size:16px;background:#1B4A7A;color:#fff;border:0;border-radius:10px;cursor:pointer}
 button:hover{background:#153a61}
 #tip{margin-top:12px;font-size:13px;color:#c0392b;min-height:18px}
 .ok{color:#1e8e3e!important}
+.files{margin-top:16px;text-align:left;display:none}
+.file{display:flex;align-items:center;gap:10px;background:#F4F7FB;border:1px solid #d7dfea;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.file .ic{font-size:22px}
+.file .nm{flex:1;min-width:0}
+.file .nm b{display:block;font-size:14px;color:#1B4A7A;word-break:break-all}
+.file .nm span{font-size:12px;color:#8a97a8}
+.file a{flex:none;font-size:13px;font-weight:600;color:#fff;background:#1B4A7A;text-decoration:none;padding:7px 14px;border-radius:99px}
+.file a:hover{background:#153a61}
 .foot{margin-top:18px;font-size:12px;color:#9aa7b8}
+.cnt{color:#1e8e3e;font-size:13px;margin-top:10px;min-height:18px}
 </style></head><body><div class="card">
-<div class="gold"></div><h1>提取码下载</h1><p>欢乐工具站 APP 全家桶（7 壳 · 3.9 版）</p>
-<input id="code" type="text" inputmode="numeric" placeholder="请输入提取码" autocomplete="off">
+<div class="gold"></div><h1>提取码下载</h1><p class="sub" id="subtitle">欢乐工具站 · 输入提取码提取文件</p>
+<div id="step1">
+<input id="code" type="text" placeholder="请输入提取码" autocomplete="off">
 <button onclick="go()">提取下载</button><div id="tip"></div>
+</div>
+<div class="files" id="files"></div>
+<div class="cnt" id="cnt"></div>
 <div class="foot">🔒 欢乐工具站 · 提取码由文件分享人提供</div></div>
 <script>
-var REAL='3939', TARGET='https://zh.efcc.cc/download/zhan/tl.efcc.cc/soft/huanle-apps-39.zip';
-function go(){var v=document.getElementById('code').value.trim(),t=document.getElementById('tip');
-if(v===REAL){t.textContent='✓ 提取码正确，开始下载…';t.className='ok';setTimeout(function(){location.href=TARGET},500)}
-else{t.textContent='提取码不对，再想想？';document.getElementById('code').value='';document.getElementById('code').focus()}}
+/* ====== 门牌货单：一个提取码 → 一批文件（单文件自动下载，多文件手点） ====== */
+var SHELF = {
+  '3939': { note:'欢乐工具站 APP 全家桶（7 壳 · 3.9 版）', files:[
+    {name:'欢乐工具站APP全家桶.zip', size:'285 KB', desc:'7个APP安装包 + 身份证对照图', url:'https://zh.efcc.cc/download/zhan/tl.efcc.cc/soft/huanle-apps-39.zip'}
+  ]}
+};
+function go(){
+  var v=document.getElementById('code').value.trim(), t=document.getElementById('tip');
+  var item=SHELF[v];
+  if(!item){ t.textContent='提取码不对，再想想？'; document.getElementById('code').value=''; document.getElementById('code').focus(); return; }
+  t.textContent=''; render(item);
+}
+function render(item){
+  document.getElementById('step1').style.display='none';
+  document.getElementById('subtitle').textContent=item.note;
+  var box=document.getElementById('files'), files=item.files;
+  box.style.display='block';
+  var html='';
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    html+='<div class="file"><span class="ic">'+(f.name.indexOf('.zip')>-1?'📦':f.name.indexOf('.apk')>-1?'🤖':'📄')+'</span><span class="nm"><b>'+f.name+'</b><span>'+f.desc+' · '+f.size+'</span></span><a href="'+f.url+'">下载</a></div>';
+  }
+  box.innerHTML=html;
+  var cnt=document.getElementById('cnt');
+  if(files.length===1){
+    var url=files[0].url;
+    cnt.textContent='✓ 提取成功，1.5 秒后自动开始下载（浏览器右上角弹保存框）…';
+    setTimeout(function(){
+      cnt.textContent='✓ 下载已触发。若浏览器没反应，点上方“下载”按钮。';
+      location.href=url;
+    },1500);
+  } else {
+    cnt.textContent='共 '+files.length+' 个文件，请逐个点击“下载”。';
+  }
+}
 document.getElementById('code').addEventListener('keydown',function(e){if(e.key==='Enter')go()});
 </script></body></html>
