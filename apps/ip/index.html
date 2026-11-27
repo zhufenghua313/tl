@@ -6,9 +6,9 @@
 <title>IP 归属地查询 · 欢乐工具站</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233b'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%234a9eff' stroke-width='3'/%3E%3Cellipse cx='32' cy='32' rx='7.5' ry='17' fill='none' stroke='%234a9eff' stroke-width='2'/%3E%3Cline x1='15' y1='32' x2='49' y2='32' stroke='%234a9eff' stroke-width='2'/%3E%3Cline x1='19' y1='23' x2='45' y2='23' stroke='%234a9eff' stroke-width='2'/%3E%3Cline x1='19' y1='41' x2='45' y2='41' stroke='%234a9eff' stroke-width='2'/%3E%3C/svg%3E">
 <style>
-:root{--bg:#0e1726;--card:#16233b;--line:rgba(232,188,79,.18);--gold:#E8BC4F;--ink:#eef2f8;--sub:#9fb0c9;}
+:root{--bg:#1B4A7A;--card:#fff;--line:#d7dfea;--gold:#C9A227;--ink:#1B4A7A;--sub:#5F7188;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:radial-gradient(1200px 600px at 50% -10%,#1b2a45 0%,var(--bg) 60%);min-height:100vh;color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:radial-gradient(1200px 600px at 50% -10%,#2A5A8F 0%,var(--bg) 60%);min-height:100vh;color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 .wrap{max-width:760px;margin:0 auto;padding:24px 16px 48px}
 header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 20px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700}
@@ -19,9 +19,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .hero h1 em{font-style:normal;color:var(--gold)}
 .hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
 .search{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
-.search input{flex:1;background:#0b1422;border:1px solid #2a3c5e;border-radius:10px;color:var(--ink);padding:13px 14px;font-size:15px;outline:none}
+.search input{flex:1;background:#0b1422;border:1px solid #d7dfea;border-radius:10px;color:var(--ink);padding:13px 14px;font-size:15px;outline:none}
 .search input:focus{border-color:var(--gold)}
-.search button{background:linear-gradient(135deg,#E8BC4F,#d99e2b);border:none;border-radius:10px;color:#20283a;font-weight:800;font-size:15px;padding:0 26px;cursor:pointer}
+.search button{background:linear-gradient(135deg,#E8BC4F,#d99e2b);border:none;border-radius:10px;color:#F4F7FB;font-weight:800;font-size:15px;padding:0 26px;cursor:pointer}
 .search button:active{transform:scale(.97)}
 .quick{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .quick button{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:7px 14px;font-size:12.5px;cursor:pointer}
@@ -30,14 +30,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .card .head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
 .card .head .ip{font-size:18px;font-weight:700;letter-spacing:.5px}
 .badge{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--gold)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.05)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#F4F7FB}
 .cell{background:var(--card);padding:13px 18px}
 .cell.full{grid-column:1/-1}
 .cell .k{font-size:11.5px;color:var(--sub);margin-bottom:5px}
 .cell .v{font-size:14.5px;font-weight:600;word-break:break-all}
 .tags{display:flex;gap:8px;padding:12px 18px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06)}
 .tag{font-size:11px;padding:4px 11px;border-radius:999px}
-.tag.yes{background:rgba(232,120,80,.15);color:#ff9d76;border:1px solid rgba(232,120,80,.3)}
+.tag.yes{background:rgba(232,120,80,.15);color:#e07b52;border:1px solid rgba(232,120,80,.3)}
 .tag.no{background:rgba(90,200,140,.12);color:#7fd6a4;border:1px solid rgba(90,200,140,.25)}
 .msg{padding:22px;text-align:center;color:var(--sub);font-size:14px;line-height:1.8}
 .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;margin:30px auto;animation:r 1s linear infinite}
@@ -66,7 +66,7 @@ footer a{color:var(--gold);text-decoration:none}
     <button data-p="www.baidu.com">baidu.com</button>
   </div>
   <div id="out"><div class="msg">输入 IP 或域名开始查询；页面打开时已自动为您检测本机 IP ⬆️</div></div>
-    <footer style="text-align:center;padding:26px 0 0"><a href="/" style="color:rgba(255,255,255,.55);font-size:14px;text-decoration:none">← 返回欢乐工具站</a></footer>
+    <footer style="text-align:center;padding:26px 0 0"><a href="/" style="color:#8A97A8;font-size:14px;text-decoration:none">← 返回欢乐工具站</a></footer>
 </div>
 <script>
 const q=document.getElementById('q'),go=document.getElementById('go'),out=document.getElementById('out');
