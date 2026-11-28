@@ -15,16 +15,16 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#E8BC4F,#d99e2b);display:flex;align-items:center;justify-content:center;font-size:18px}
 .domain{color:var(--gold);font-size:13px;letter-spacing:.5px}
 .hero{text-align:center;padding:18px 0 26px}
-.hero h1{font-size:26px;letter-spacing:1px}
+.hero h1{font-size:26px;letter-spacing:1px;color:#fff}
 .hero h1 em{font-style:normal;color:var(--gold)}
-.hero p{color:var(--sub);font-size:13.5px;margin-top:8px}
+.hero p{color:rgba(255,255,255,.78);font-size:13.5px;margin-top:8px}
 .search{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
-.search input{flex:1;background:#0b1422;border:1px solid #d7dfea;border-radius:10px;color:var(--ink);padding:13px 14px;font-size:15px;outline:none}
+.search input{flex:1;background:#0b1422;border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#fff;padding:13px 14px;font-size:15px;outline:none}
 .search input:focus{border-color:var(--gold)}
 .search button{background:linear-gradient(135deg,#E8BC4F,#d99e2b);border:none;border-radius:10px;color:#F4F7FB;font-weight:800;font-size:15px;padding:0 26px;cursor:pointer}
 .search button:active{transform:scale(.97)}
 .quick{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
-.quick button{background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:7px 14px;font-size:12.5px;cursor:pointer}
+.quick button{background:transparent;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.85);border-radius:999px;padding:7px 14px;font-size:12.5px;cursor:pointer}
 .quick button:hover{color:var(--gold);border-color:var(--gold)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-top:20px;overflow:hidden}
 .card .head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -39,7 +39,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .tag{font-size:11px;padding:4px 11px;border-radius:999px}
 .tag.yes{background:rgba(232,120,80,.15);color:#e07b52;border:1px solid rgba(232,120,80,.3)}
 .tag.no{background:rgba(90,200,140,.12);color:#7fd6a4;border:1px solid rgba(90,200,140,.25)}
-.msg{padding:22px;text-align:center;color:var(--sub);font-size:14px;line-height:1.8}
+.msg{padding:22px;text-align:center;color:rgba(255,255,255,.75);font-size:14px;line-height:1.8}
 .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;margin:30px auto;animation:r 1s linear infinite}
 @keyframes r{to{transform:rotate(360deg)}}
 footer{text-align:center;color:var(--sub);font-size:12px;padding:26px 0 0}
@@ -66,7 +66,7 @@ footer a{color:var(--gold);text-decoration:none}
     <button data-p="www.baidu.com">baidu.com</button>
   </div>
   <div id="out"><div class="msg">输入 IP 或域名开始查询；页面打开时已自动为您检测本机 IP ⬆️</div></div>
-    <footer style="text-align:center;padding:26px 0 0"><a href="/" style="color:#8A97A8;font-size:14px;text-decoration:none">← 返回欢乐工具站</a></footer>
+    <footer style="text-align:center;padding:26px 0 0"><a href="/" style="color:rgba(255,255,255,.65);font-size:14px;text-decoration:none">← 返回欢乐工具站</a></footer>
 </div>
 <script>
 const q=document.getElementById('q'),go=document.getElementById('go'),out=document.getElementById('out');
